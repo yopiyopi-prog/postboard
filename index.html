@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PostBoard - SNS投稿管理カレンダー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: #F0F4F8; font-family: 'Hiragino Sans','Noto Sans JP',sans-serif; }
+    #root { max-width: 480px; margin: 0 auto; }
+    textarea { -webkit-user-select: text !important; user-select: text !important; }
+    input { -webkit-user-select: text !important; user-select: text !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const _warn = console.warn;
+    console.warn = (...args) => {
+      if (args[0] && args[0].includes && args[0].includes('Babel')) return;
+      _warn.apply(console, args);
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const PLATFORMS = [
+  { id: "threads",   name: "Threads",   color: "#000000", emoji: "🧵" },
+  { id: "instagram", name: "Instagram", color: "#E1306C", emoji: "📸" },
+  { id: "tiktok",    name: "TikTok",    color: "#010101", emoji: "🎵" },
+  { id: "youtube",   name: "YouTube",   color: "#FF0000", emoji: "▶️" },
+  { id: "twitter",   name: "X",         color: "#1DA1F2", emoji: "𝕏" },
+];
+
+const DEFAULT_ACCOUNTS = [
+  { id: "acc1", name: "アカウント1", platform: "threads",   color: "#6C63FF" },
+  { id: "acc2", name: "アカウント2", platform: "instagram", color: "#E1306C" },
+  { id: "acc3", name: "アカウント3", platform: "tiktok",    color: "#555555" },
+  { id: "acc4", name: "アカウント4", platform: "youtube",   color: "#FF0000" },
+  { id: "acc5", name: "アカウント5", platform: "twitter",   color: "#1DA1F2" },
+];
+
+const MASCOT_MESSAGES = [
+  "今日はまだ投稿してないワよ！コツコツ続けるのが女王の流儀ですわ👑",
+  "3日連続投稿！すごいじゃないの！この調子でいくわよ🔥",
+  "1週間連続！アテクシも鼻が高いわ！さすがですわ👑✨",
+  "目標まであと少しよ！諦めたら終わりですわ📈",
+  "今日バズってるじゃないの！勢いに乗って次も投稿しちゃいなさい🚀",
+  "今週はよく投稿できてるわね！フォロワーも増えそうでうれしいわ😄",
+];
+
+const DAYS_JP = ["日","月","火","水","木","金","土"];
+
+const getBuzz = (likes) => {
+  if (likes >= 301) return { label:"爆バズ", color:"#FF4500", bg:"#FFF0EB" };
+  if (likes >= 101) return { label:"バズ",   color:"#FF8C00", bg:"#FFF8ED" };
+  if (likes >= 31)  return { label:"好調",   color:"#F59E0B", bg:"#FFFBEB" };
+  if (likes >= 11)  return { label:"",        color:"#6C63FF", bg:"#EEF2FF" };
+  return { label:"", color:"#CBD5E1", bg:"#F8FAFC" };
+};
+
+const defaultFollower = {
+  acc1: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
+  acc2: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
+  acc3: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
+  acc4: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
+  acc5: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
+};
+
+function PostBoard() {
+  const [view, setView]               = useState("calendar");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  useEffect(() => {
+    const version = "v1.1";
+    if (localStorage.getItem("pb_version") !== version) {
+      ["pb_postData","pb_accounts","pb_followerData","pb_streak","pb_bestStreak"].forEach(k => localStorage.removeItem(k));
+      localStorage.setItem("pb_version", version);
+    }
+  }, []);
+
+  const [postData, setPostData]       = useState(() => { try { const s = localStorage.getItem("pb_postData"); return s ? JSON.parse(s) : {}; } catch { return {}; } });
+  const [accounts, setAccounts]       = useState(() => { try { const s = localStorage.getItem("pb_accounts"); return s ? JSON.parse(s) : DEFAULT_ACCOUNTS; } catch { return DEFAULT_ACCOUNTS; } });
+  const [followerData, setFollowerData] = useState(() => { try { const s = localStorage.getItem("pb_followerData"); return s ? JSON.parse(s) : defaultFollower; } catch { return defaultFollower; } });
+  const [streak, setStreak]           = useState(() => { try { return parseInt(localStorage.getItem("pb_streak") || "0"); } catch { return 0; } });
+  const [bestStreak, setBestStreak]   = useState(() => { try { return parseInt(localStorage.getItem("pb_bestStreak") || "0"); } catch { return 0; } });
+
+  useEffect(() => { try { localStorage.setItem("pb_postData",     JSON.stringify(postData));     } catch {} }, [postData]);
+  useEffect(() => { try { localStorage.setItem("pb_accounts",     JSON.stringify(accounts));     } catch {} }, [accounts]);
+  useEffect(() => { try { localStorage.setItem("pb_followerData", JSON.stringify(followerData)); } catch {} }, [followerData]);
+  useEffect(() => { try { localStorage.setItem("pb_streak",       String(streak));               } catch {} }, [streak]);
+  useEffect(() => { try { localStorage.setItem("pb_bestStreak",   String(bestStreak));           } catch {} }, [bestStreak]);
+
+  useEffect(() => {
+    const today = new Date();
+    const key = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+    if (postData[key]?.posts?.length > 0) {
+      setStreak(prev => { const n = prev+1; setBestStreak(b => Math.max(b,n)); return n; });
+    }
+  }, [postData]);
+
+  const [showModal, setShowModal]   = useState(false);
+  const [newPost, setNewPost]       = useState({ accountId:"acc1", platform:"threads", likes:"", content:"", time:"" });
+  const [editingId, setEditingId]   = useState(null);
+  const [editName, setEditName]     = useState("");
+  const [hmFilter, setHmFilter]     = useState("all");
+  const [weekMode, setWeekMode]     = useState("posts");
+  const [fwAccId, setFwAccId]       = useState("acc1");
+  const editInputRef                = useRef(null);
+
+  const year        = currentDate.getFullYear();
+  const month       = currentDate.getMonth();
+  const firstDay    = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const getDayKey   = (d) => `${year}-${month+1}-${d}`;
+
+  const totalPosts = Object.keys(postData).filter(k => k.startsWith(`${year}-${month+1}`)).reduce((s,k) => s+postData[k].posts.length, 0);
+  const mascotMsg  = streak >= 7 ? MASCOT_MESSAGES[2] : streak >= 3 ? MASCOT_MESSAGES[1] : MASCOT_MESSAGES[5];
+
+  const doAddPost = () => {
+    if (!selectedDay) return;
+    const key = getDayKey(selectedDay);
+    const existing = postData[key] || { posts:[], followerChange:0 };
+    const t = newPost.time || new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
+    setPostData({ ...postData, [key]: { ...existing, posts:[...existing.posts, { ...newPost, likes:Number(newPost.likes)||0, id:`${Date.now()}`, time:t }] } });
+    setShowModal(false);
+    setNewPost({ accountId:accounts[0]?.id||"acc1", platform:"threads", likes:"", content:"", time:"" });
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const val = editInputRef.current?.value?.trim();
+    if (!val) return;
+    setAccounts(accounts.map(a => a.id===editingId ? {...a, name:val} : a));
+    setEditingId(null);
+  };
+
+  const addAccount = () => {
+    const id = `acc${Date.now()}`;
+    const colors = ["#6C63FF","#E1306C","#01CBC6","#FF9F43","#54A0FF"];
+    setAccounts([...accounts, { id, name:"新しいアカウント", platform:"twitter", color:colors[accounts.length%colors.length] }]);
+    setFollowerData(prev => ({ ...prev, [id]:{ current:0, goal:1000, history:[0,0,0,0,0,0,0] } }));
+  };
+
+  const selectedDayData = selectedDay ? postData[getDayKey(selectedDay)] : null;
+
+  const card  = { background:"#fff", borderRadius:16, padding:16, marginBottom:14, boxShadow:"0 1px 6px rgba(0,0,0,0.07)" };
+  const pill  = (on, clr="#6C63FF") => ({ padding:"5px 12px", borderRadius:20, fontSize:12, cursor:"pointer", fontWeight:on?700:400, background:on?clr:"#F1F5F9", border:`1px solid ${on?clr:"#E2E8F0"}`, color:on?"#fff":"#64748B" });
+  const inp   = { width:"100%", padding:"11px 14px", borderRadius:12, border:"1.5px solid #E2E8F0", fontSize:14, boxSizing:"border-box", color:"#1a2a3a", background:"#fff", outline:"none" };
+
+  const CalendarView = () => (
+    <div style={{padding:"0 12px 12px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0 10px"}}>
+        <button onClick={() => setCurrentDate(new Date(year,month-1,1))} style={{width:32,height:32,borderRadius:8,border:"1px solid #E2E8F0",background:"#fff",cursor:"pointer",color:"#64748B",fontSize:18}}>‹</button>
+        <span style={{fontSize:17,fontWeight:700}}>{year}年{month+1}月</span>
+        <button onClick={() => setCurrentDate(new Date(year,month+1,1))} style={{width:32,height:32,borderRadius:8,border:"1px solid #E2E8F0",background:"#fff",cursor:"pointer",color:"#64748B",fontSize:18}}>›</button>
+      </div>
+      <div style={{background:"#fff",borderRadius:16,overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:"1px solid #F1F5F9"}}>
+          {DAYS_JP.map((d,i) => <div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,padding:"8px 0",color:i===0?"#EF4444":i===6?"#3B82F6":"#94A3B8"}}>{d}</div>)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+          {Array.from({length:firstDay}).map((_,i) => <div key={`e${i}`} style={{minHeight:62,borderRight:"1px solid #F1F5F9",borderBottom:"1px solid #F1F5F9",background:"#FAFBFC"}}/>)}
+          {Array.from({length:daysInMonth},(_,i)=>i+1).map((d,idx) => {
+            const key  = getDayKey(d);
+            const dd   = postData[key];
+            const today= d===new Date().getDate()&&month===new Date().getMonth()&&year===new Date().getFullYear();
+            const sel  = selectedDay===d;
+            const col  = (firstDay+idx)%7;
+            const maxL = dd ? Math.max(...dd.posts.map(p=>p.likes)) : 0;
+            const buzz = getBuzz(maxL);
+            return (
+              <div key={d} onClick={() => setSelectedDay(d===selectedDay?null:d)} style={{minHeight:62,padding:"5px 4px",cursor:"pointer",borderRight:col<6?"1px solid #F1F5F9":"none",borderBottom:"1px solid #F1F5F9",background:sel?"#EEF2FF":dd?buzz.bg:"#fff",boxShadow:sel?"inset 0 0 0 2px #6C63FF":today?"inset 0 0 0 2px #6C63FF66":"none"}}>
+                <div style={{fontSize:12,fontWeight:today?700:400,color:today?"#6C63FF":col===0?"#EF4444":col===6?"#3B82F6":"#1a2a3a",width:20,height:20,borderRadius:"50%",background:today?"#EEF2FF":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>{d}</div>
+                {dd && <div style={{marginTop:2}}>
+                  <div style={{fontSize:9,color:buzz.color,fontWeight:700}}>{buzz.label||`❤️${maxL}`}</div>
+                  <div style={{display:"flex",gap:1,marginTop:1}}>
+                    {[...new Set(dd.posts.map(p=>p.accountId))].slice(0,3).map(aid => {
+                      const a = accounts.find(x=>x.id===aid);
+                      return <div key={aid} style={{width:5,height:5,borderRadius:"50%",background:a?.color||"#ccc"}}/>;
+                    })}
+                  </div>
+                </div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{marginTop:10}}>
+        <div style={{fontSize:11,color:"#64748B",marginBottom:5,fontWeight:600}}>❤️ いいね数で色が変わる！</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {[["0-10","#CBD5E1"],["11-30","#6C63FF"],["31-100","#F59E0B"],["101-300","#FF8C00"],["301~","#FF4500"]].map(([l,c]) => (
+            <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#64748B"}}>
+              <div style={{width:10,height:10,borderRadius:2,background:c+"55",border:`1px solid ${c}`}}/>{l}
+            </div>
+          ))}
+        </div>
+      </div>
+      {selectedDay && (
+        <div style={{...card,marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <span style={{fontWeight:700,fontSize:15}}>{month+1}月{selectedDay}日</span>
+            <button onClick={() => setShowModal(true)} style={{background:"#6C63FF",border:"none",borderRadius:20,color:"#fff",padding:"7px 16px",fontSize:13,cursor:"pointer",fontWeight:700}}>＋ 投稿を記録</button>
+          </div>
+          {selectedDayData?.posts.length > 0 ? selectedDayData.posts.map(post => {
+            const acc  = accounts.find(a=>a.id===post.accountId);
+            const plat = PLATFORMS.find(p=>p.id===post.platform);
+            const bz   = getBuzz(post.likes);
+            return (
+              <div key={post.id} style={{background:"#F8FAFC",borderRadius:12,padding:"10px 12px",marginBottom:8,borderLeft:`3px solid ${acc?.color||"#6C63FF"}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:32,height:32,borderRadius:8,background:(acc?.color||"#6C63FF")+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{plat?.emoji}</div>
+                    <div>
+                      <div style={{fontSize:11,color:acc?.color,fontWeight:700}}>{plat?.name} · {acc?.name}</div>
+                      <div style={{fontSize:12,color:"#64748B"}}>{post.content||"投稿"}{post.time?` · ${post.time}":""}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:14,fontWeight:700,color:bz.color}}>❤️ {post.likes}</div>
+                    {bz.label && <div style={{fontSize:9,color:bz.color,fontWeight:700}}>{bz.label}</div>}
+                  </div>
+                </div>
+              </div>
+            );
+          }) : <div style={{textAlign:"center",color:"#94A3B8",padding:"20px 0",fontSize:13}}>この日の投稿はまだないよ</div>}
+        </div>
+      )}
+      {!selectedDay && (
+        <button onClick={() => { setSelectedDay(new Date().getDate()); setTimeout(()=>setShowModal(true),50); }} style={{position:"fixed",bottom:80,right:20,width:52,height:52,borderRadius:"50%",background:"#6C63FF",border:"none",color:"#fff",fontSize:26,cursor:"pointer",boxShadow:"0 4px 16px rgba(108,99,255,0.45)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center"}}>＋</button>
+      )}
+    </div>
+  );
+
+  const AnalyticsView = () => {
+    const slots = [
+      {label:"深夜\n0-5時", hours:[0,1,2,3,4,5]},
+      {label:"朝\n6-9時",   hours:[6,7,8,9]},
+      {label:"昼\n10-14時", hours:[10,11,12,13,14]},
+      {label:"夕方\n15-18時",hours:[15,16,17,18]},
+      {label:"夜\n19-23時", hours:[19,20,21,22,23]},
+    ];
+    const grid = slots.map(slot => DAYS_JP.map((_,di) => {
+      const posts = Object.entries(postData).flatMap(([k,v]) => {
+        const [y2,m2,d2] = k.split("-").map(Number);
+        if (new Date(y2,m2-1,d2).getDay()!==di) return [];
+        return v.posts.filter(p=>p.time&&slot.hours.includes(parseInt(p.time)));
+      });
+      return { count:posts.length, avgLikes:posts.length?Math.round(posts.reduce((s,p)=>s+p.likes,0)/posts.length):0 };
+    }));
+    const maxVal = Math.max(...grid.flat().map(c=>weekMode==="posts"?c.count:c.avgLikes),1);
+    const fd  = followerData[fwAccId];
+    const acc = accounts.find(a=>a.id===fwAccId);
+    const fMin  = fd ? Math.min(...fd.history) : 0;
+    const fRange= fd ? (Math.max(...fd.history)-fMin||1) : 1;
+    const xLabels=["Week1","Week2","Week3","Week4","Week5","Week6","Week7"];
+    return (
+      <div style={{padding:"12px 12px 0"}}>
+        <div style={card}>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>📊 投稿頻度ヒートマップ</div>
+          <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+            <button style={pill(hmFilter==="all")} onClick={()=>setHmFilter("all")}>全アカウント</button>
+            {accounts.map(a=><button key={a.id} style={pill(hmFilter===a.id,a.color)} onClick={()=>setHmFilter(a.id)}>{PLATFORMS.find(p=>p.id===a.platform)?.emoji} {a.name}</button>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:3}}>
+            {DAYS_JP.map((d,i)=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:i===0?"#EF4444":i===6?"#3B82F6":"#94A3B8"}}>{d}</div>)}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
+            {Array.from({length:firstDay}).map((_,i)=><div key={i}/>)}
+            {Array.from({length:daysInMonth},(_,i)=>i+1).map(d=>{
+              const posts=postData[getDayKey(d)]?.posts||[];
+              const cnt=hmFilter==="all"?posts.length:posts.filter(p=>p.accountId===hmFilter).length;
+              const ac=accounts.find(a=>a.id===hmFilter);
+              const rgb=hmFilter==="all"?"108,99,255":(ac?.color.replace("#","").match(/.{2}/g)?.map(h=>parseInt(h,16)).join(","))||"108,99,255";
+              const op=cnt===0?0.07:Math.min(0.2+cnt*0.3,1);
+              return <div key={d} style={{aspectRatio:"1",borderRadius:4,background:`rgba(${rgb},${op})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:op>0.5?"#fff":"transparent",fontWeight:700}}>{cnt>0?cnt:""}</div>;
+            })}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:4,marginTop:8,justifyContent:"flex-end"}}>
+            <span style={{fontSize:9,color:"#94A3B8"}}>少ない</span>
+            {[0.07,0.25,0.5,0.75,1].map(o=><div key={o} style={{width:10,height:10,borderRadius:2,background:`rgba(108,99,255,${o})`}}/>)}
+            <span style={{fontSize:9,color:"#94A3B8"}}>多い</span>
+          </div>
+        </div>
+        <div style={card}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:15,fontWeight:700}}>⏰ 曜日×時間帯分析</div>
+            <div style={{display:"flex",gap:6}}>
+              {[["posts","投稿数"],["likes","いいね平均"]].map(([m,l])=><button key={m} style={pill(weekMode===m)} onClick={()=>setWeekMode(m)}>{l}</button>)}
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"42px repeat(7,1fr)",gap:2,marginBottom:3}}>
+            <div/>
+            {DAYS_JP.map((d,i)=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:i===0?"#EF4444":i===6?"#3B82F6":"#94A3B8"}}>{d}</div>)}
+          </div>
+          {slots.map((slot,si)=>(
+            <div key={si} style={{display:"grid",gridTemplateColumns:"42px repeat(7,1fr)",gap:2,marginBottom:2}}>
+              <div style={{fontSize:8,color:"#94A3B8",lineHeight:1.3,whiteSpace:"pre-line",display:"flex",alignItems:"center"}}>{slot.label}</div>
+              {grid[si].map((cell,di)=>{
+                const val=weekMode==="posts"?cell.count:cell.avgLikes;
+                const op=val===0?0.06:0.15+(val/maxVal)*0.8;
+                return <div key={di} style={{aspectRatio:"1",borderRadius:4,background:`rgba(108,99,255,${op})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:op>0.5?"#fff":"#94A3B8",fontWeight:700}}>{val>0?val:""}</div>;
+              })}
+            </div>
+          ))}
+          <div style={{marginTop:6,fontSize:10,color:"#94A3B8",textAlign:"center"}}>{weekMode==="posts"?"色が濃い = 投稿が多い時間帯":"色が濃い = いいね平均が高い時間帯"}</div>
+        </div>
+        <div style={card}>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>📈 フォロワー推移グラフ</div>
+          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+            {accounts.map(a=><button key={a.id} style={pill(fwAccId===a.id,a.color)} onClick={()=>setFwAccId(a.id)}>{PLATFORMS.find(p=>p.id===a.platform)?.emoji} {a.name}</button>)}
+          </div>
+          {fd && acc && <>
+            <div style={{fontSize:13,fontWeight:700,color:acc.color,marginBottom:8}}>
+              {PLATFORMS.find(p=>p.id===acc.platform)?.name} {acc.name}
+              <span style={{fontSize:11,color:"#94A3B8",fontWeight:400,marginLeft:8}}>7週間の推移</span>
+            </div>
+            <div style={{position:"relative",height:130}}>
+              <svg width="100%" height="130" viewBox="0 0 300 130" preserveAspectRatio="none">
+                <defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={acc.color} stopOpacity="0.25"/><stop offset="100%" stopColor={acc.color} stopOpacity="0.02"/></linearGradient></defs>
+                {[0,1,2,3].map(i=><line key={i} x1="0" y1={15+i*28} x2="300" y2={15+i*28} stroke="#F1F5F9" strokeWidth="1"/>)}
+                <path d={`M ${fd.history.map((v,i)=>`${i*(300/6)},${115-((v-fMin)/fRange)*95}`).join(" L ")} L ${6*(300/6)},115 L 0,115 Z`} fill="url(#grad)"/>
+                <polyline points={fd.history.map((v,i)=>`${i*(300/6)},${115-((v-fMin)/fRange)*95}`).join(" ")} fill="none" stroke={acc.color} strokeWidth="2.5" strokeLinejoin="round"/>
+                {fd.history.map((v,i)=><circle key={i} cx={i*(300/6)} cy={115-((v-fMin)/fRange)*95} r="3.5" fill={i===fd.history.length-1?acc.color:"#fff"} stroke={acc.color} strokeWidth="2"/>)}
+              </svg>
+              <div style={{position:"absolute",top:4,right:0,background:acc.color,color:"#fff",borderRadius:8,padding:"4px 10px",fontSize:13,fontWeight:700,textAlign:"center"}}>
+                {fd.current.toLocaleString()}<br/><span style={{fontSize:9,fontWeight:400}}>フォロワー</span>
+              </div>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              {xLabels.map((l,i)=><div key={i} style={{fontSize:8,color:"#94A3B8"}}>{l}</div>)}
+            </div>
+            <div style={{background:"#F8FAFC",borderRadius:10,padding:"10px 12px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:6}}>
+                <span style={{color:"#64748B"}}>目標：{fd.goal.toLocaleString()} フォロワー</span>
+                <span style={{fontWeight:700,color:acc.color}}>{Math.round((fd.current/fd.goal)*100)}%</span>
+              </div>
+              <div style={{background:"#E2E8F0",borderRadius:6,height:8,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${Math.min((fd.current/fd.goal)*100,100)}%`,background:`linear-gradient(to right,${acc.color},${acc.color}88)`,borderRadius:6}}/>
+              </div>
+              <div style={{fontSize:11,color:"#94A3B8",marginTop:5}}>あと {(fd.goal-fd.current).toLocaleString()} フォロワーで達成！</div>
+            </div>
+          </>}
+        </div>
+        <div style={card}>
+          <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>🔥 連続投稿ストリーク</div>
+          <div style={{textAlign:"center",marginBottom:14}}>
+            <div style={{fontSize:52,fontWeight:900,color:"#FF6B35",lineHeight:1}}>{streak}</div>
+            <div style={{fontSize:15,color:"#64748B",marginTop:4}}>日連続中！</div>
+            <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>最高記録：{bestStreak}日</div>
+          </div>
+          <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:14}}>
+            {["火","水","木","金","土","日","月"].map((d,i)=>(
+              <div key={d} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                <div style={{width:30,height:30,borderRadius:"50%",background:i<streak%7?"#6C63FF":"#F1F5F9",color:i<streak%7?"#fff":"#CBD5E1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700}}>{i<streak%7?"✓":""}</div>
+                <div style={{fontSize:9,color:"#94A3B8"}}>{d}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:10,background:"#FFF7F5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#FF6B35",fontWeight:700,textAlign:"center"}}>🔥 消えないように続けよう！</div>
+        </div>
+      </div>
+    );
+  };
+
+  const AccountsView = () => (
+    <div style={{padding:"12px 12px 0"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <span style={{fontSize:15,fontWeight:700}}>アカウント一覧</span>
+        <button onClick={addAccount} style={{background:"#6C63FF",border:"none",borderRadius:20,color:"#fff",padding:"7px 16px",fontSize:13,fontWeight:700,cursor:"pointer"}}>＋ 追加</button>
+      </div>
+      {accounts.map(acc => {
+        const plat  = PLATFORMS.find(p=>p.id===acc.platform);
+        const fd    = followerData[acc.id]||{current:0,goal:1000,history:[0,0,0,0,0,0,0]};
+        const mPosts= Object.values(postData).reduce((s,d)=>s+d.posts.filter(p=>p.accountId===acc.id).length,0);
+        const isEd  = editingId===acc.id;
+        return (
+          <div key={acc.id} style={card}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+              <div style={{width:44,height:44,borderRadius:12,background:acc.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{plat?.emoji}</div>
+              <div style={{flex:1}}>
+                {isEd ? (
+                  <div style={{display:"flex",gap:6,alignItems:"flex-start"}}>
+                    <textarea ref={editInputRef} defaultValue={editName} rows={1}
+                      style={{flex:1,padding:"10px 12px",fontSize:16,borderRadius:10,border:`2px solid ${acc.color}`,outline:"none",color:"#1a2a3a",background:"#fff",resize:"none",fontFamily:"inherit",lineHeight:1.4,minWidth:0}}
+                      placeholder="アカウント名を入力"/>
+                    <button onClick={saveEdit} style={{padding:"10px 14px",borderRadius:10,background:acc.color,border:"none",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14,flexShrink:0}}>保存</button>
+                    <button onClick={()=>setEditingId(null)} style={{padding:"10px 12px",borderRadius:10,background:"#F1F5F9",border:"none",color:"#64748B",cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
+                  </div>
+                ) : (
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontWeight:700,fontSize:14,color:acc.color}}>{plat?.name}</span>
+                    <span style={{fontSize:13}}>{acc.name}</span>
+                    <button onClick={()=>{setEditingId(acc.id);setEditName(acc.name);}} style={{marginLeft:"auto",padding:"4px 10px",borderRadius:6,background:"#F1F5F9",border:"1px solid #E2E8F0",color:"#64748B",fontSize:12,cursor:"pointer"}}>✏️ 編集</button>
+                  </div>
+                )}
+                <div style={{display:"flex",gap:4,marginTop:8}}>
+                  {PLATFORMS.map(p=><button key={p.id} onClick={()=>setAccounts(accounts.map(a=>a.id===acc.id?{...a,platform:p.id}:a))} style={{padding:"4px 8px",borderRadius:6,border:`1px solid ${acc.platform===p.id?acc.color:"#E2E8F0"}`,background:acc.platform===p.id?acc.color+"18":"transparent",fontSize:13,cursor:"pointer"}}>{p.emoji}</button>)}
+                </div>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              <div>
+                <div style={{fontSize:11,color:"#94A3B8",marginBottom:5,fontWeight:600}}>👥 現在のフォロワー数</div>
+                <textarea rows={1} defaultValue={fd.current||""} onBlur={e=>setFollowerData(prev=>({...prev,[acc.id]:{...fd,current:Number(e.target.value.replace(/[^0-9]/g,""))||0}}))} placeholder="0"
+                  style={{width:"100%",padding:"10px 12px",fontSize:16,borderRadius:10,border:"1.5px solid #E2E8F0",outline:"none",color:"#1a2a3a",background:"#fff",boxSizing:"border-box",resize:"none",fontFamily:"inherit",lineHeight:1.4}}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,color:"#94A3B8",marginBottom:5,fontWeight:600}}>🎯 目標フォロワー数</div>
+                <textarea rows={1} defaultValue={fd.goal||""} onBlur={e=>setFollowerData(prev=>({...prev,[acc.id]:{...fd,goal:Number(e.target.value.replace(/[^0-9]/g,""))||1}}))} placeholder="1000"
+                  style={{width:"100%",padding:"10px 12px",fontSize:16,borderRadius:10,border:"1.5px solid #E2E8F0",outline:"none",color:"#1a2a3a",background:"#fff",boxSizing:"border-box",resize:"none",fontFamily:"inherit",lineHeight:1.4}}/>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+              {[["今月投稿",mPosts],["目標",fd.goal.toLocaleString()],["達成率",`${Math.round((fd.current/fd.goal)*100)}%`]].map(([l,v])=>(
+                <div key={l} style={{background:"#F8FAFC",borderRadius:10,padding:"8px",textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:700,color:acc.color}}>{v}</div>
+                  <div style={{fontSize:10,color:"#94A3B8",marginTop:1}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#94A3B8",marginBottom:4}}>
+              <span>{fd.current.toLocaleString()} フォロワー</span><span>目標 {fd.goal.toLocaleString()}</span>
+            </div>
+            <div style={{background:"#F1F5F9",borderRadius:6,height:7,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${Math.min((fd.current/fd.goal)*100,100)}%`,background:`linear-gradient(to right,${acc.color},${acc.color}88)`,borderRadius:6}}/>
+            </div>
+            {accounts.length>1 && <button onClick={()=>setAccounts(accounts.filter(a=>a.id!==acc.id))} style={{marginTop:8,padding:"4px 10px",borderRadius:6,background:"#FFF5F5",border:"1px solid #FECACA",color:"#EF4444",fontSize:11,cursor:"pointer"}}>削除</button>}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div style={{fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif",background:"#F0F4F8",minHeight:"100vh",paddingBottom:80}}>
+      <div style={{background:"#fff",borderBottom:"1px solid #E2E8F0",padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+        <div>
+          <div style={{fontSize:19,fontWeight:800,color:"#6C63FF",letterSpacing:"-0.5px"}}>PostBoard</div>
+          <div style={{fontSize:10,color:"#94A3B8"}}>SNS投稿管理カレンダー</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <div style={{background:"#FFF7F5",border:"1px solid #FDBA74",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#EA580C",fontWeight:700}}>🔥 {streak}日連続</div>
+          <div style={{background:"#EEF2FF",border:"1px solid #A5B4FC",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#6C63FF",fontWeight:700}}>📝 {totalPosts}投稿</div>
+        </div>
+      </div>
+      <div style={{margin:"12px 12px 0",background:"linear-gradient(135deg,#EEF2FF,#F5F3FF)",border:"1px solid #C7D2FE",borderRadius:14,padding:"12px 14px",display:"flex",alignItems:"flex-start",gap:10}}>
+        <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <div style={{fontSize:10,color:"#6C63FF",fontWeight:700}}>👑</div>
+          <div style={{fontSize:30,lineHeight:1}}>🐸</div>
+          <div style={{fontSize:8,color:"#6C63FF",fontWeight:700,whiteSpace:"nowrap"}}>カ・エルデ</div>
+        </div>
+        <div style={{position:"relative",background:"#fff",borderRadius:12,padding:"8px 12px",border:"1px solid #C7D2FE",flex:1}}>
+          <div style={{position:"absolute",left:-7,top:12,width:0,height:0,borderTop:"6px solid transparent",borderBottom:"6px solid transparent",borderRight:"7px solid #C7D2FE"}}/>
+          <div style={{position:"absolute",left:-5,top:13,width:0,height:0,borderTop:"5px solid transparent",borderBottom:"5px solid transparent",borderRight:"6px solid #fff"}}/>
+          <div style={{fontSize:9,color:"#6C63FF",fontWeight:700,marginBottom:3}}>ピョコピョコからひとこと💬</div>
+          <div style={{fontSize:12,color:"#3730A3",lineHeight:1.6}}>{mascotMsg}</div>
+        </div>
+      </div>
+      {view==="calendar"  && <CalendarView/>}
+      {view==="analytics" && <AnalyticsView/>}
+      {view==="accounts"  && <AccountsView/>}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid #E2E8F0",display:"flex",zIndex:100}}>
+        {[["calendar","カレンダー","📅"],["analytics","分析","📊"],["accounts","アカウント","👤"]].map(([v,label,icon])=>(
+          <button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"10px 0 6px",border:"none",background:"transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:view===v?"#6C63FF":"#94A3B8",fontSize:10,fontWeight:view===v?700:400}}>
+            <span style={{fontSize:18}}>{icon}</span>{label}
+          </button>
+        ))}
+      </div>
+      {showModal && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"flex-end",zIndex:200}} onClick={()=>setShowModal(false)}>
+          <div style={{width:"100%",background:"#fff",borderRadius:"24px 24px 0 0",padding:"24px 20px 36px",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <div style={{fontSize:16,fontWeight:700}}>新規投稿を記録</div>
+              <button onClick={()=>setShowModal(false)} style={{width:28,height:28,borderRadius:"50%",background:"#F1F5F9",border:"none",cursor:"pointer",fontSize:14,color:"#64748B"}}>✕</button>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>アカウント</div>
+              <select value={newPost.accountId} onChange={e=>setNewPost({...newPost,accountId:e.target.value})} style={inp}>
+                {accounts.map(a=>{const pl=PLATFORMS.find(p=>p.id===a.platform);return <option key={a.id} value={a.id}>{pl?.emoji} {a.name}（{pl?.name}）</option>;})}
+              </select>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>プラットフォーム</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {PLATFORMS.map(p=><button key={p.id} onClick={()=>setNewPost({...newPost,platform:p.id})} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${newPost.platform===p.id?p.color:"#E2E8F0"}`,background:newPost.platform===p.id?p.color+"18":"#fff",fontSize:12,cursor:"pointer",color:"#1a2a3a",fontWeight:newPost.platform===p.id?700:400}}>{p.emoji} {p.name}</button>)}
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              <div>
+                <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>❤️ いいね数</div>
+                <input type="number" value={newPost.likes} onChange={e=>setNewPost({...newPost,likes:e.target.value})} placeholder="0" style={inp}/>
+              </div>
+              <div>
+                <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>🕐 投稿時間</div>
+                <input type="time" value={newPost.time} onChange={e=>setNewPost({...newPost,time:e.target.value})} style={inp}/>
+              </div>
+            </div>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>メモ（任意）</div>
+              <input type="text" value={newPost.content} onChange={e=>setNewPost({...newPost,content:e.target.value})} placeholder="リール投稿、保存率が高かった！" style={inp}/>
+            </div>
+            <button onClick={doAddPost} style={{width:"100%",padding:14,background:"#6C63FF",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>保存する</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<PostBoard/>);
+  </script>
+</body>
+</html>
