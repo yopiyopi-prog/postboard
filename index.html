@@ -6,513 +6,771 @@
   <title>PostBoard - SNS投稿管理カレンダー</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body { background: #F0F4F8; font-family: 'Hiragino Sans','Noto Sans JP',sans-serif; }
-    #root { max-width: 480px; margin: 0 auto; }
+    body { background: #F0F4F8; font-family: 'Hiragino Sans','Noto Sans JP',sans-serif; color: #1a2a3a; }
+    #app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
+    textarea, input, select, button { font-family: inherit; }
     textarea { -webkit-user-select: text !important; user-select: text !important; }
     input { -webkit-user-select: text !important; user-select: text !important; }
+
+    /* Header */
+    .header { background:#fff; border-bottom:1px solid #E2E8F0; padding:13px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .header-title { font-size:19px; font-weight:800; color:#6C63FF; letter-spacing:-0.5px; }
+    .header-sub { font-size:10px; color:#94A3B8; }
+    .header-badges { display:flex; gap:8px; }
+    .badge-fire { background:#FFF7F5; border:1px solid #FDBA74; border-radius:20px; padding:4px 10px; font-size:12px; color:#EA580C; font-weight:700; }
+    .badge-post { background:#EEF2FF; border:1px solid #A5B4FC; border-radius:20px; padding:4px 10px; font-size:12px; color:#6C63FF; font-weight:700; }
+
+    /* Mascot */
+    .mascot { margin:12px 12px 0; background:linear-gradient(135deg,#EEF2FF,#F5F3FF); border:1px solid #C7D2FE; border-radius:14px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px; }
+    .mascot-icon { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .mascot-crown { font-size:10px; color:#6C63FF; font-weight:700; }
+    .mascot-frog { font-size:30px; line-height:1; }
+    .mascot-name { font-size:8px; color:#6C63FF; font-weight:700; white-space:nowrap; }
+    .mascot-bubble { position:relative; background:#fff; border-radius:12px; padding:8px 12px; border:1px solid #C7D2FE; flex:1; }
+    .mascot-bubble::before { content:''; position:absolute; left:-7px; top:12px; width:0; height:0; border-top:6px solid transparent; border-bottom:6px solid transparent; border-right:7px solid #C7D2FE; }
+    .mascot-bubble::after { content:''; position:absolute; left:-5px; top:13px; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-right:6px solid #fff; }
+    .mascot-label { font-size:9px; color:#6C63FF; font-weight:700; margin-bottom:3px; }
+    .mascot-msg { font-size:12px; color:#3730A3; line-height:1.6; }
+
+    /* Nav */
+    .nav { position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto; background:#fff; border-top:1px solid #E2E8F0; display:flex; z-index:100; }
+    .nav-btn { flex:1; padding:10px 0 6px; border:none; background:transparent; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; }
+    .nav-icon { font-size:18px; }
+
+    /* Card */
+    .card { background:#fff; border-radius:16px; padding:16px; margin-bottom:14px; box-shadow:0 1px 6px rgba(0,0,0,0.07); }
+
+    /* Calendar */
+    .cal-wrap { padding:0 12px 12px; }
+    .cal-nav { display:flex; align-items:center; justify-content:space-between; padding:14px 0 10px; }
+    .cal-nav-btn { width:32px; height:32px; border-radius:8px; border:1px solid #E2E8F0; background:#fff; cursor:pointer; color:#64748B; font-size:18px; }
+    .cal-title { font-size:17px; font-weight:700; }
+    .cal-grid { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.07); }
+    .cal-head { display:grid; grid-template-columns:repeat(7,1fr); border-bottom:1px solid #F1F5F9; }
+    .cal-head-day { text-align:center; font-size:11px; font-weight:700; padding:8px 0; }
+    .cal-days { display:grid; grid-template-columns:repeat(7,1fr); }
+    .cal-day { min-height:62px; padding:5px 4px; cursor:pointer; border-bottom:1px solid #F1F5F9; }
+    .cal-day-num { font-size:12px; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+    .cal-day-buzz { font-size:9px; font-weight:700; margin-top:2px; }
+    .cal-day-dots { display:flex; gap:1px; margin-top:1px; }
+    .cal-day-dot { width:5px; height:5px; border-radius:50%; }
+
+    /* Legend */
+    .legend { margin-top:10px; }
+    .legend-title { font-size:11px; color:#64748B; margin-bottom:5px; font-weight:600; }
+    .legend-items { display:flex; gap:8px; flex-wrap:wrap; }
+    .legend-item { display:flex; align-items:center; gap:4px; font-size:10px; color:#64748B; }
+    .legend-dot { width:10px; height:10px; border-radius:2px; }
+
+    /* FAB */
+    .fab { position:fixed; bottom:80px; right:20px; width:52px; height:52px; border-radius:50%; background:#6C63FF; border:none; color:#fff; font-size:26px; cursor:pointer; box-shadow:0 4px 16px rgba(108,99,255,0.45); z-index:50; display:flex; align-items:center; justify-content:center; }
+
+    /* Detail panel */
+    .detail-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .detail-title { font-weight:700; font-size:15px; }
+    .record-btn { background:#6C63FF; border:none; border-radius:20px; color:#fff; padding:7px 16px; font-size:13px; cursor:pointer; font-weight:700; }
+    .post-item { background:#F8FAFC; border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+    .post-item-inner { display:flex; justify-content:space-between; align-items:center; }
+    .post-item-left { display:flex; align-items:center; gap:8px; }
+    .post-item-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+    .post-item-name { font-size:11px; font-weight:700; }
+    .post-item-memo { font-size:12px; color:#64748B; }
+    .post-item-likes { font-size:14px; font-weight:700; text-align:right; }
+    .post-item-buzz { font-size:9px; font-weight:700; text-align:right; }
+    .no-post { text-align:center; color:#94A3B8; padding:20px 0; font-size:13px; }
+
+    /* Modal */
+    .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.5); display:flex; align-items:flex-end; z-index:200; }
+    .modal-box { width:100%; background:#fff; border-radius:24px 24px 0 0; padding:24px 20px 36px; max-height:92vh; overflow-y:auto; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .modal-title { font-size:16px; font-weight:700; }
+    .modal-close { width:28px; height:28px; border-radius:50%; background:#F1F5F9; border:none; cursor:pointer; font-size:14px; color:#64748B; }
+    .modal-label { font-size:12px; color:#64748B; font-weight:600; margin-bottom:6px; }
+    .modal-input { width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid #E2E8F0; font-size:14px; box-sizing:border-box; color:#1a2a3a; background:#fff; outline:none; }
+    .modal-select { width:100%; padding:11px 14px; border-radius:12px; border:1.5px solid #E2E8F0; font-size:14px; box-sizing:border-box; color:#1a2a3a; background:#fff; outline:none; }
+    .plat-btns { display:flex; gap:6px; flex-wrap:wrap; }
+    .plat-btn { padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .save-btn { width:100%; padding:14px; background:#6C63FF; border:none; border-radius:14px; color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+
+    /* Analytics */
+    .analytics-wrap { padding:12px 12px 0; }
+    .section-title { font-size:15px; font-weight:700; margin-bottom:10px; }
+    .pill-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .heatmap-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+    .heatmap-head { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:3px; }
+    .hm-day-label { text-align:center; font-size:10px; font-weight:700; }
+    .hm-cell { aspect-ratio:1; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; }
+    .week-grid-row { display:grid; grid-template-columns:42px repeat(7,1fr); gap:2px; margin-bottom:2px; }
+    .week-label { font-size:8px; color:#94A3B8; line-height:1.3; white-space:pre-line; display:flex; align-items:center; }
+    .legend-bar { display:flex; align-items:center; gap:4px; margin-top:8px; justify-content:flex-end; }
+    .legend-box { width:10px; height:10px; border-radius:2px; }
+
+    /* Follower graph */
+    .fw-note { font-size:13px; font-weight:700; margin-bottom:8px; }
+    .fw-sub { font-size:11px; color:#94A3B8; font-weight:400; margin-left:8px; }
+    .fw-chart { position:relative; height:130px; }
+    .fw-label { position:absolute; top:4px; right:0; color:#fff; border-radius:8px; padding:4px 10px; font-size:13px; font-weight:700; text-align:center; }
+    .fw-xlabel { display:flex; justify-content:space-between; margin-bottom:10px; }
+    .fw-xlabel span { font-size:8px; color:#94A3B8; }
+    .fw-goal-box { background:#F8FAFC; border-radius:10px; padding:10px 12px; }
+    .fw-goal-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; }
+    .fw-bar-bg { background:#E2E8F0; border-radius:6px; height:8px; overflow:hidden; }
+    .fw-bar-fill { height:100%; border-radius:6px; }
+    .fw-goal-note { font-size:11px; color:#94A3B8; margin-top:5px; }
+
+    /* Streak */
+    .streak-center { text-align:center; margin-bottom:14px; }
+    .streak-num { font-size:52px; font-weight:900; color:#FF6B35; line-height:1; }
+    .streak-label { font-size:15px; color:#64748B; margin-top:4px; }
+    .streak-best { font-size:12px; color:#94A3B8; margin-top:2px; }
+    .streak-dots { display:flex; justify-content:center; gap:8px; margin-bottom:14px; }
+    .streak-dot-wrap { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .streak-dot { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+    .streak-day { font-size:9px; color:#94A3B8; }
+    .streak-bars { display:flex; align-items:flex-end; gap:4px; height:60px; }
+    .streak-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .streak-bar { width:100%; border-radius:4px 4px 0 0; }
+    .streak-bar-label { font-size:9px; color:#94A3B8; }
+    .streak-msg { margin-top:10px; background:#FFF7F5; border-radius:10px; padding:9px 12px; font-size:12px; color:#FF6B35; font-weight:700; text-align:center; }
+
+    /* Accounts */
+    .acc-wrap { padding:12px 12px 0; }
+    .acc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .acc-header-title { font-size:15px; font-weight:700; }
+    .acc-add-btn { background:#6C63FF; border:none; border-radius:20px; color:#fff; padding:7px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+    .acc-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+    .acc-edit-row { display:flex; align-items:center; gap:8px; }
+    .acc-plat-btns { display:flex; gap:4px; margin-top:8px; flex-wrap:wrap; }
+    .acc-plat-btn { padding:4px 8px; border-radius:6px; font-size:13px; cursor:pointer; }
+    .acc-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+    .acc-stat { background:#F8FAFC; border-radius:10px; padding:8px; text-align:center; }
+    .acc-stat-val { font-size:16px; font-weight:700; }
+    .acc-stat-label { font-size:10px; color:#94A3B8; margin-top:1px; }
+    .acc-fw-row { display:flex; justify-content:space-between; font-size:11px; color:#94A3B8; margin-bottom:4px; }
+    .acc-bar-bg { background:#F1F5F9; border-radius:6px; height:7px; overflow:hidden; }
+    .acc-bar-fill { height:100%; border-radius:6px; }
+    .acc-del-btn { margin-top:8px; padding:4px 10px; border-radius:6px; background:#FFF5F5; border:1px solid #FECACA; color:#EF4444; font-size:11px; cursor:pointer; }
+    .acc-input-label { font-size:11px; color:#94A3B8; margin-bottom:5px; font-weight:600; }
+    .acc-textarea { width:100%; padding:10px 12px; font-size:16px; border-radius:10px; border:1.5px solid #E2E8F0; outline:none; color:#1a2a3a; background:#fff; box-sizing:border-box; resize:none; font-family:inherit; line-height:1.4; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script>
-    const _warn = console.warn;
-    console.warn = (...args) => {
-      if (args[0] && args[0].includes && args[0].includes('Babel')) return;
-      _warn.apply(console, args);
-    };
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+<div id="app"></div>
 
+<script>
 const PLATFORMS = [
-  { id: "threads",   name: "Threads",   color: "#000000", emoji: "🧵" },
-  { id: "instagram", name: "Instagram", color: "#E1306C", emoji: "📸" },
-  { id: "tiktok",    name: "TikTok",    color: "#010101", emoji: "🎵" },
-  { id: "youtube",   name: "YouTube",   color: "#FF0000", emoji: "▶️" },
-  { id: "twitter",   name: "X",         color: "#1DA1F2", emoji: "𝕏" },
+  {id:'threads',   name:'Threads',   color:'#000000', emoji:'🧵'},
+  {id:'instagram', name:'Instagram', color:'#E1306C', emoji:'📸'},
+  {id:'tiktok',    name:'TikTok',    color:'#010101', emoji:'🎵'},
+  {id:'youtube',   name:'YouTube',   color:'#FF0000', emoji:'▶️'},
+  {id:'twitter',   name:'X',         color:'#1DA1F2', emoji:'𝕏'},
 ];
-
 const DEFAULT_ACCOUNTS = [
-  { id: "acc1", name: "アカウント1", platform: "threads",   color: "#6C63FF" },
-  { id: "acc2", name: "アカウント2", platform: "instagram", color: "#E1306C" },
-  { id: "acc3", name: "アカウント3", platform: "tiktok",    color: "#555555" },
-  { id: "acc4", name: "アカウント4", platform: "youtube",   color: "#FF0000" },
-  { id: "acc5", name: "アカウント5", platform: "twitter",   color: "#1DA1F2" },
+  {id:'acc1',name:'アカウント1',platform:'threads',  color:'#6C63FF'},
+  {id:'acc2',name:'アカウント2',platform:'instagram',color:'#E1306C'},
+  {id:'acc3',name:'アカウント3',platform:'tiktok',   color:'#555555'},
+  {id:'acc4',name:'アカウント4',platform:'youtube',  color:'#FF0000'},
+  {id:'acc5',name:'アカウント5',platform:'twitter',  color:'#1DA1F2'},
 ];
-
 const MASCOT_MESSAGES = [
-  "今日はまだ投稿してないワよ！コツコツ続けるのが女王の流儀ですわ👑",
-  "3日連続投稿！すごいじゃないの！この調子でいくわよ🔥",
-  "1週間連続！アテクシも鼻が高いわ！さすがですわ👑✨",
-  "目標まであと少しよ！諦めたら終わりですわ📈",
-  "今日バズってるじゃないの！勢いに乗って次も投稿しちゃいなさい🚀",
-  "今週はよく投稿できてるわね！フォロワーも増えそうでうれしいわ😄",
+  '今日はまだ投稿してないワよ！コツコツ続けるのが女王の流儀ですわ👑',
+  '3日連続投稿！すごいじゃないの！この調子でいくわよ🔥',
+  '1週間連続！アテクシも鼻が高いわ！さすがですわ👑✨',
+  '目標まであと少しよ！諦めたら終わりですわ📈',
+  '今日バズってるじゃないの！勢いに乗って次も投稿しちゃいなさい🚀',
+  '今週はよく投稿できてるわね！フォロワーも増えそうでうれしいわ😄',
 ];
+const DAYS = ['日','月','火','水','木','金','土'];
 
-const DAYS_JP = ["日","月","火","水","木","金","土"];
-
-const getBuzz = (likes) => {
-  if (likes >= 301) return { label:"爆バズ", color:"#FF4500", bg:"#FFF0EB" };
-  if (likes >= 101) return { label:"バズ",   color:"#FF8C00", bg:"#FFF8ED" };
-  if (likes >= 31)  return { label:"好調",   color:"#F59E0B", bg:"#FFFBEB" };
-  if (likes >= 11)  return { label:"",        color:"#6C63FF", bg:"#EEF2FF" };
-  return { label:"", color:"#CBD5E1", bg:"#F8FAFC" };
-};
-
-const defaultFollower = {
-  acc1: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
-  acc2: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
-  acc3: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
-  acc4: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
-  acc5: { current:0, goal:1000, history:[0,0,0,0,0,0,0] },
-};
-
-function PostBoard() {
-  const [view, setView]               = useState("calendar");
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState(null);
-
-  useEffect(() => {
-    const version = "v1.1";
-    if (localStorage.getItem("pb_version") !== version) {
-      ["pb_postData","pb_accounts","pb_followerData","pb_streak","pb_bestStreak"].forEach(k => localStorage.removeItem(k));
-      localStorage.setItem("pb_version", version);
-    }
-  }, []);
-
-  const [postData, setPostData]       = useState(() => { try { const s = localStorage.getItem("pb_postData"); return s ? JSON.parse(s) : {}; } catch { return {}; } });
-  const [accounts, setAccounts]       = useState(() => { try { const s = localStorage.getItem("pb_accounts"); return s ? JSON.parse(s) : DEFAULT_ACCOUNTS; } catch { return DEFAULT_ACCOUNTS; } });
-  const [followerData, setFollowerData] = useState(() => { try { const s = localStorage.getItem("pb_followerData"); return s ? JSON.parse(s) : defaultFollower; } catch { return defaultFollower; } });
-  const [streak, setStreak]           = useState(() => { try { return parseInt(localStorage.getItem("pb_streak") || "0"); } catch { return 0; } });
-  const [bestStreak, setBestStreak]   = useState(() => { try { return parseInt(localStorage.getItem("pb_bestStreak") || "0"); } catch { return 0; } });
-
-  useEffect(() => { try { localStorage.setItem("pb_postData",     JSON.stringify(postData));     } catch {} }, [postData]);
-  useEffect(() => { try { localStorage.setItem("pb_accounts",     JSON.stringify(accounts));     } catch {} }, [accounts]);
-  useEffect(() => { try { localStorage.setItem("pb_followerData", JSON.stringify(followerData)); } catch {} }, [followerData]);
-  useEffect(() => { try { localStorage.setItem("pb_streak",       String(streak));               } catch {} }, [streak]);
-  useEffect(() => { try { localStorage.setItem("pb_bestStreak",   String(bestStreak));           } catch {} }, [bestStreak]);
-
-  useEffect(() => {
-    const today = new Date();
-    const key = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
-    if (postData[key]?.posts?.length > 0) {
-      setStreak(prev => { const n = prev+1; setBestStreak(b => Math.max(b,n)); return n; });
-    }
-  }, [postData]);
-
-  const [showModal, setShowModal]   = useState(false);
-  const [newPost, setNewPost]       = useState({ accountId:"acc1", platform:"threads", likes:"", content:"", time:"" });
-  const [editingId, setEditingId]   = useState(null);
-  const [editName, setEditName]     = useState("");
-  const [hmFilter, setHmFilter]     = useState("all");
-  const [weekMode, setWeekMode]     = useState("posts");
-  const [fwAccId, setFwAccId]       = useState("acc1");
-  const editInputRef                = useRef(null);
-
-  const year        = currentDate.getFullYear();
-  const month       = currentDate.getMonth();
-  const firstDay    = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const getDayKey   = (d) => `${year}-${month+1}-${d}`;
-
-  const totalPosts = Object.keys(postData).filter(k => k.startsWith(`${year}-${month+1}`)).reduce((s,k) => s+postData[k].posts.length, 0);
-  const mascotMsg  = streak >= 7 ? MASCOT_MESSAGES[2] : streak >= 3 ? MASCOT_MESSAGES[1] : MASCOT_MESSAGES[5];
-
-  const doAddPost = () => {
-    if (!selectedDay) return;
-    const key = getDayKey(selectedDay);
-    const existing = postData[key] || { posts:[], followerChange:0 };
-    const t = newPost.time || new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
-    setPostData({ ...postData, [key]: { ...existing, posts:[...existing.posts, { ...newPost, likes:Number(newPost.likes)||0, id:`${Date.now()}`, time:t }] } });
-    setShowModal(false);
-    setNewPost({ accountId:accounts[0]?.id||"acc1", platform:"threads", likes:"", content:"", time:"" });
-  };
-
-  const saveEdit = () => {
-    if (!editingId) return;
-    const val = editInputRef.current?.value?.trim();
-    if (!val) return;
-    setAccounts(accounts.map(a => a.id===editingId ? {...a, name:val} : a));
-    setEditingId(null);
-  };
-
-  const addAccount = () => {
-    const id = `acc${Date.now()}`;
-    const colors = ["#6C63FF","#E1306C","#01CBC6","#FF9F43","#54A0FF"];
-    setAccounts([...accounts, { id, name:"新しいアカウント", platform:"twitter", color:colors[accounts.length%colors.length] }]);
-    setFollowerData(prev => ({ ...prev, [id]:{ current:0, goal:1000, history:[0,0,0,0,0,0,0] } }));
-  };
-
-  const selectedDayData = selectedDay ? postData[getDayKey(selectedDay)] : null;
-
-  const card  = { background:"#fff", borderRadius:16, padding:16, marginBottom:14, boxShadow:"0 1px 6px rgba(0,0,0,0.07)" };
-  const pill  = (on, clr="#6C63FF") => ({ padding:"5px 12px", borderRadius:20, fontSize:12, cursor:"pointer", fontWeight:on?700:400, background:on?clr:"#F1F5F9", border:`1px solid ${on?clr:"#E2E8F0"}`, color:on?"#fff":"#64748B" });
-  const inp   = { width:"100%", padding:"11px 14px", borderRadius:12, border:"1.5px solid #E2E8F0", fontSize:14, boxSizing:"border-box", color:"#1a2a3a", background:"#fff", outline:"none" };
-
-  const CalendarView = () => (
-    <div style={{padding:"0 12px 12px"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0 10px"}}>
-        <button onClick={() => setCurrentDate(new Date(year,month-1,1))} style={{width:32,height:32,borderRadius:8,border:"1px solid #E2E8F0",background:"#fff",cursor:"pointer",color:"#64748B",fontSize:18}}>‹</button>
-        <span style={{fontSize:17,fontWeight:700}}>{year}年{month+1}月</span>
-        <button onClick={() => setCurrentDate(new Date(year,month+1,1))} style={{width:32,height:32,borderRadius:8,border:"1px solid #E2E8F0",background:"#fff",cursor:"pointer",color:"#64748B",fontSize:18}}>›</button>
-      </div>
-      <div style={{background:"#fff",borderRadius:16,overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.07)"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:"1px solid #F1F5F9"}}>
-          {DAYS_JP.map((d,i) => <div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,padding:"8px 0",color:i===0?"#EF4444":i===6?"#3B82F6":"#94A3B8"}}>{d}</div>)}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
-          {Array.from({length:firstDay}).map((_,i) => <div key={`e${i}`} style={{minHeight:62,borderRight:"1px solid #F1F5F9",borderBottom:"1px solid #F1F5F9",background:"#FAFBFC"}}/>)}
-          {Array.from({length:daysInMonth},(_,i)=>i+1).map((d,idx) => {
-            const key  = getDayKey(d);
-            const dd   = postData[key];
-            const today= d===new Date().getDate()&&month===new Date().getMonth()&&year===new Date().getFullYear();
-            const sel  = selectedDay===d;
-            const col  = (firstDay+idx)%7;
-            const maxL = dd ? Math.max(...dd.posts.map(p=>p.likes)) : 0;
-            const buzz = getBuzz(maxL);
-            return (
-              <div key={d} onClick={() => setSelectedDay(d===selectedDay?null:d)} style={{minHeight:62,padding:"5px 4px",cursor:"pointer",borderRight:col<6?"1px solid #F1F5F9":"none",borderBottom:"1px solid #F1F5F9",background:sel?"#EEF2FF":dd?buzz.bg:"#fff",boxShadow:sel?"inset 0 0 0 2px #6C63FF":today?"inset 0 0 0 2px #6C63FF66":"none"}}>
-                <div style={{fontSize:12,fontWeight:today?700:400,color:today?"#6C63FF":col===0?"#EF4444":col===6?"#3B82F6":"#1a2a3a",width:20,height:20,borderRadius:"50%",background:today?"#EEF2FF":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>{d}</div>
-                {dd && <div style={{marginTop:2}}>
-                  <div style={{fontSize:9,color:buzz.color,fontWeight:700}}>{buzz.label||`❤️${maxL}`}</div>
-                  <div style={{display:"flex",gap:1,marginTop:1}}>
-                    {[...new Set(dd.posts.map(p=>p.accountId))].slice(0,3).map(aid => {
-                      const a = accounts.find(x=>x.id===aid);
-                      return <div key={aid} style={{width:5,height:5,borderRadius:"50%",background:a?.color||"#ccc"}}/>;
-                    })}
-                  </div>
-                </div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      <div style={{marginTop:10}}>
-        <div style={{fontSize:11,color:"#64748B",marginBottom:5,fontWeight:600}}>❤️ いいね数で色が変わる！</div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {[["0-10","#CBD5E1"],["11-30","#6C63FF"],["31-100","#F59E0B"],["101-300","#FF8C00"],["301~","#FF4500"]].map(([l,c]) => (
-            <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#64748B"}}>
-              <div style={{width:10,height:10,borderRadius:2,background:c+"55",border:`1px solid ${c}`}}/>{l}
-            </div>
-          ))}
-        </div>
-      </div>
-      {selectedDay && (
-        <div style={{...card,marginTop:12}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <span style={{fontWeight:700,fontSize:15}}>{month+1}月{selectedDay}日</span>
-            <button onClick={() => setShowModal(true)} style={{background:"#6C63FF",border:"none",borderRadius:20,color:"#fff",padding:"7px 16px",fontSize:13,cursor:"pointer",fontWeight:700}}>＋ 投稿を記録</button>
-          </div>
-          {selectedDayData?.posts.length > 0 ? selectedDayData.posts.map(post => {
-            const acc  = accounts.find(a=>a.id===post.accountId);
-            const plat = PLATFORMS.find(p=>p.id===post.platform);
-            const bz   = getBuzz(post.likes);
-            return (
-              <div key={post.id} style={{background:"#F8FAFC",borderRadius:12,padding:"10px 12px",marginBottom:8,borderLeft:`3px solid ${acc?.color||"#6C63FF"}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:32,height:32,borderRadius:8,background:(acc?.color||"#6C63FF")+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{plat?.emoji}</div>
-                    <div>
-                      <div style={{fontSize:11,color:acc?.color,fontWeight:700}}>{plat?.name} · {acc?.name}</div>
-                      <div style={{fontSize:12,color:"#64748B"}}>{post.content||"投稿"}{post.time?` · ${post.time}":""}</div>
-                    </div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:14,fontWeight:700,color:bz.color}}>❤️ {post.likes}</div>
-                    {bz.label && <div style={{fontSize:9,color:bz.color,fontWeight:700}}>{bz.label}</div>}
-                  </div>
-                </div>
-              </div>
-            );
-          }) : <div style={{textAlign:"center",color:"#94A3B8",padding:"20px 0",fontSize:13}}>この日の投稿はまだないよ</div>}
-        </div>
-      )}
-      {!selectedDay && (
-        <button onClick={() => { setSelectedDay(new Date().getDate()); setTimeout(()=>setShowModal(true),50); }} style={{position:"fixed",bottom:80,right:20,width:52,height:52,borderRadius:"50%",background:"#6C63FF",border:"none",color:"#fff",fontSize:26,cursor:"pointer",boxShadow:"0 4px 16px rgba(108,99,255,0.45)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center"}}>＋</button>
-      )}
-    </div>
-  );
-
-  const AnalyticsView = () => {
-    const slots = [
-      {label:"深夜\n0-5時", hours:[0,1,2,3,4,5]},
-      {label:"朝\n6-9時",   hours:[6,7,8,9]},
-      {label:"昼\n10-14時", hours:[10,11,12,13,14]},
-      {label:"夕方\n15-18時",hours:[15,16,17,18]},
-      {label:"夜\n19-23時", hours:[19,20,21,22,23]},
-    ];
-    const grid = slots.map(slot => DAYS_JP.map((_,di) => {
-      const posts = Object.entries(postData).flatMap(([k,v]) => {
-        const [y2,m2,d2] = k.split("-").map(Number);
-        if (new Date(y2,m2-1,d2).getDay()!==di) return [];
-        return v.posts.filter(p=>p.time&&slot.hours.includes(parseInt(p.time)));
-      });
-      return { count:posts.length, avgLikes:posts.length?Math.round(posts.reduce((s,p)=>s+p.likes,0)/posts.length):0 };
-    }));
-    const maxVal = Math.max(...grid.flat().map(c=>weekMode==="posts"?c.count:c.avgLikes),1);
-    const fd  = followerData[fwAccId];
-    const acc = accounts.find(a=>a.id===fwAccId);
-    const fMin  = fd ? Math.min(...fd.history) : 0;
-    const fRange= fd ? (Math.max(...fd.history)-fMin||1) : 1;
-    const xLabels=["Week1","Week2","Week3","Week4","Week5","Week6","Week7"];
-    return (
-      <div style={{padding:"12px 12px 0"}}>
-        <div style={card}>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>📊 投稿頻度ヒートマップ</div>
-          <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-            <button style={pill(hmFilter==="all")} onClick={()=>setHmFilter("all")}>全アカウント</button>
-            {accounts.map(a=><button key={a.id} style={pill(hmFilter===a.id,a.color)} onClick={()=>setHmFilter(a.id)}>{PLATFORMS.find(p=>p.id===a.platform)?.emoji} {a.name}</button>)}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3,marginBottom:3}}>
-            {DAYS_JP.map((d,i)=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:i===0?"#EF4444":i===6?"#3B82F6":"#94A3B8"}}>{d}</div>)}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
-            {Array.from({length:firstDay}).map((_,i)=><div key={i}/>)}
-            {Array.from({length:daysInMonth},(_,i)=>i+1).map(d=>{
-              const posts=postData[getDayKey(d)]?.posts||[];
-              const cnt=hmFilter==="all"?posts.length:posts.filter(p=>p.accountId===hmFilter).length;
-              const ac=accounts.find(a=>a.id===hmFilter);
-              const rgb=hmFilter==="all"?"108,99,255":(ac?.color.replace("#","").match(/.{2}/g)?.map(h=>parseInt(h,16)).join(","))||"108,99,255";
-              const op=cnt===0?0.07:Math.min(0.2+cnt*0.3,1);
-              return <div key={d} style={{aspectRatio:"1",borderRadius:4,background:`rgba(${rgb},${op})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:op>0.5?"#fff":"transparent",fontWeight:700}}>{cnt>0?cnt:""}</div>;
-            })}
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:4,marginTop:8,justifyContent:"flex-end"}}>
-            <span style={{fontSize:9,color:"#94A3B8"}}>少ない</span>
-            {[0.07,0.25,0.5,0.75,1].map(o=><div key={o} style={{width:10,height:10,borderRadius:2,background:`rgba(108,99,255,${o})`}}/>)}
-            <span style={{fontSize:9,color:"#94A3B8"}}>多い</span>
-          </div>
-        </div>
-        <div style={card}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontSize:15,fontWeight:700}}>⏰ 曜日×時間帯分析</div>
-            <div style={{display:"flex",gap:6}}>
-              {[["posts","投稿数"],["likes","いいね平均"]].map(([m,l])=><button key={m} style={pill(weekMode===m)} onClick={()=>setWeekMode(m)}>{l}</button>)}
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"42px repeat(7,1fr)",gap:2,marginBottom:3}}>
-            <div/>
-            {DAYS_JP.map((d,i)=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:i===0?"#EF4444":i===6?"#3B82F6":"#94A3B8"}}>{d}</div>)}
-          </div>
-          {slots.map((slot,si)=>(
-            <div key={si} style={{display:"grid",gridTemplateColumns:"42px repeat(7,1fr)",gap:2,marginBottom:2}}>
-              <div style={{fontSize:8,color:"#94A3B8",lineHeight:1.3,whiteSpace:"pre-line",display:"flex",alignItems:"center"}}>{slot.label}</div>
-              {grid[si].map((cell,di)=>{
-                const val=weekMode==="posts"?cell.count:cell.avgLikes;
-                const op=val===0?0.06:0.15+(val/maxVal)*0.8;
-                return <div key={di} style={{aspectRatio:"1",borderRadius:4,background:`rgba(108,99,255,${op})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:op>0.5?"#fff":"#94A3B8",fontWeight:700}}>{val>0?val:""}</div>;
-              })}
-            </div>
-          ))}
-          <div style={{marginTop:6,fontSize:10,color:"#94A3B8",textAlign:"center"}}>{weekMode==="posts"?"色が濃い = 投稿が多い時間帯":"色が濃い = いいね平均が高い時間帯"}</div>
-        </div>
-        <div style={card}>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:10}}>📈 フォロワー推移グラフ</div>
-          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
-            {accounts.map(a=><button key={a.id} style={pill(fwAccId===a.id,a.color)} onClick={()=>setFwAccId(a.id)}>{PLATFORMS.find(p=>p.id===a.platform)?.emoji} {a.name}</button>)}
-          </div>
-          {fd && acc && <>
-            <div style={{fontSize:13,fontWeight:700,color:acc.color,marginBottom:8}}>
-              {PLATFORMS.find(p=>p.id===acc.platform)?.name} {acc.name}
-              <span style={{fontSize:11,color:"#94A3B8",fontWeight:400,marginLeft:8}}>7週間の推移</span>
-            </div>
-            <div style={{position:"relative",height:130}}>
-              <svg width="100%" height="130" viewBox="0 0 300 130" preserveAspectRatio="none">
-                <defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={acc.color} stopOpacity="0.25"/><stop offset="100%" stopColor={acc.color} stopOpacity="0.02"/></linearGradient></defs>
-                {[0,1,2,3].map(i=><line key={i} x1="0" y1={15+i*28} x2="300" y2={15+i*28} stroke="#F1F5F9" strokeWidth="1"/>)}
-                <path d={`M ${fd.history.map((v,i)=>`${i*(300/6)},${115-((v-fMin)/fRange)*95}`).join(" L ")} L ${6*(300/6)},115 L 0,115 Z`} fill="url(#grad)"/>
-                <polyline points={fd.history.map((v,i)=>`${i*(300/6)},${115-((v-fMin)/fRange)*95}`).join(" ")} fill="none" stroke={acc.color} strokeWidth="2.5" strokeLinejoin="round"/>
-                {fd.history.map((v,i)=><circle key={i} cx={i*(300/6)} cy={115-((v-fMin)/fRange)*95} r="3.5" fill={i===fd.history.length-1?acc.color:"#fff"} stroke={acc.color} strokeWidth="2"/>)}
-              </svg>
-              <div style={{position:"absolute",top:4,right:0,background:acc.color,color:"#fff",borderRadius:8,padding:"4px 10px",fontSize:13,fontWeight:700,textAlign:"center"}}>
-                {fd.current.toLocaleString()}<br/><span style={{fontSize:9,fontWeight:400}}>フォロワー</span>
-              </div>
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-              {xLabels.map((l,i)=><div key={i} style={{fontSize:8,color:"#94A3B8"}}>{l}</div>)}
-            </div>
-            <div style={{background:"#F8FAFC",borderRadius:10,padding:"10px 12px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:6}}>
-                <span style={{color:"#64748B"}}>目標：{fd.goal.toLocaleString()} フォロワー</span>
-                <span style={{fontWeight:700,color:acc.color}}>{Math.round((fd.current/fd.goal)*100)}%</span>
-              </div>
-              <div style={{background:"#E2E8F0",borderRadius:6,height:8,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${Math.min((fd.current/fd.goal)*100,100)}%`,background:`linear-gradient(to right,${acc.color},${acc.color}88)`,borderRadius:6}}/>
-              </div>
-              <div style={{fontSize:11,color:"#94A3B8",marginTop:5}}>あと {(fd.goal-fd.current).toLocaleString()} フォロワーで達成！</div>
-            </div>
-          </>}
-        </div>
-        <div style={card}>
-          <div style={{fontSize:15,fontWeight:700,marginBottom:12}}>🔥 連続投稿ストリーク</div>
-          <div style={{textAlign:"center",marginBottom:14}}>
-            <div style={{fontSize:52,fontWeight:900,color:"#FF6B35",lineHeight:1}}>{streak}</div>
-            <div style={{fontSize:15,color:"#64748B",marginTop:4}}>日連続中！</div>
-            <div style={{fontSize:12,color:"#94A3B8",marginTop:2}}>最高記録：{bestStreak}日</div>
-          </div>
-          <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:14}}>
-            {["火","水","木","金","土","日","月"].map((d,i)=>(
-              <div key={d} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                <div style={{width:30,height:30,borderRadius:"50%",background:i<streak%7?"#6C63FF":"#F1F5F9",color:i<streak%7?"#fff":"#CBD5E1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700}}>{i<streak%7?"✓":""}</div>
-                <div style={{fontSize:9,color:"#94A3B8"}}>{d}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{marginTop:10,background:"#FFF7F5",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#FF6B35",fontWeight:700,textAlign:"center"}}>🔥 消えないように続けよう！</div>
-        </div>
-      </div>
-    );
-  };
-
-  const AccountsView = () => (
-    <div style={{padding:"12px 12px 0"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <span style={{fontSize:15,fontWeight:700}}>アカウント一覧</span>
-        <button onClick={addAccount} style={{background:"#6C63FF",border:"none",borderRadius:20,color:"#fff",padding:"7px 16px",fontSize:13,fontWeight:700,cursor:"pointer"}}>＋ 追加</button>
-      </div>
-      {accounts.map(acc => {
-        const plat  = PLATFORMS.find(p=>p.id===acc.platform);
-        const fd    = followerData[acc.id]||{current:0,goal:1000,history:[0,0,0,0,0,0,0]};
-        const mPosts= Object.values(postData).reduce((s,d)=>s+d.posts.filter(p=>p.accountId===acc.id).length,0);
-        const isEd  = editingId===acc.id;
-        return (
-          <div key={acc.id} style={card}>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-              <div style={{width:44,height:44,borderRadius:12,background:acc.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{plat?.emoji}</div>
-              <div style={{flex:1}}>
-                {isEd ? (
-                  <div style={{display:"flex",gap:6,alignItems:"flex-start"}}>
-                    <textarea ref={editInputRef} defaultValue={editName} rows={1}
-                      style={{flex:1,padding:"10px 12px",fontSize:16,borderRadius:10,border:`2px solid ${acc.color}`,outline:"none",color:"#1a2a3a",background:"#fff",resize:"none",fontFamily:"inherit",lineHeight:1.4,minWidth:0}}
-                      placeholder="アカウント名を入力"/>
-                    <button onClick={saveEdit} style={{padding:"10px 14px",borderRadius:10,background:acc.color,border:"none",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14,flexShrink:0}}>保存</button>
-                    <button onClick={()=>setEditingId(null)} style={{padding:"10px 12px",borderRadius:10,background:"#F1F5F9",border:"none",color:"#64748B",cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
-                  </div>
-                ) : (
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontWeight:700,fontSize:14,color:acc.color}}>{plat?.name}</span>
-                    <span style={{fontSize:13}}>{acc.name}</span>
-                    <button onClick={()=>{setEditingId(acc.id);setEditName(acc.name);}} style={{marginLeft:"auto",padding:"4px 10px",borderRadius:6,background:"#F1F5F9",border:"1px solid #E2E8F0",color:"#64748B",fontSize:12,cursor:"pointer"}}>✏️ 編集</button>
-                  </div>
-                )}
-                <div style={{display:"flex",gap:4,marginTop:8}}>
-                  {PLATFORMS.map(p=><button key={p.id} onClick={()=>setAccounts(accounts.map(a=>a.id===acc.id?{...a,platform:p.id}:a))} style={{padding:"4px 8px",borderRadius:6,border:`1px solid ${acc.platform===p.id?acc.color:"#E2E8F0"}`,background:acc.platform===p.id?acc.color+"18":"transparent",fontSize:13,cursor:"pointer"}}>{p.emoji}</button>)}
-                </div>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-              <div>
-                <div style={{fontSize:11,color:"#94A3B8",marginBottom:5,fontWeight:600}}>👥 現在のフォロワー数</div>
-                <textarea rows={1} defaultValue={fd.current||""} onBlur={e=>setFollowerData(prev=>({...prev,[acc.id]:{...fd,current:Number(e.target.value.replace(/[^0-9]/g,""))||0}}))} placeholder="0"
-                  style={{width:"100%",padding:"10px 12px",fontSize:16,borderRadius:10,border:"1.5px solid #E2E8F0",outline:"none",color:"#1a2a3a",background:"#fff",boxSizing:"border-box",resize:"none",fontFamily:"inherit",lineHeight:1.4}}/>
-              </div>
-              <div>
-                <div style={{fontSize:11,color:"#94A3B8",marginBottom:5,fontWeight:600}}>🎯 目標フォロワー数</div>
-                <textarea rows={1} defaultValue={fd.goal||""} onBlur={e=>setFollowerData(prev=>({...prev,[acc.id]:{...fd,goal:Number(e.target.value.replace(/[^0-9]/g,""))||1}}))} placeholder="1000"
-                  style={{width:"100%",padding:"10px 12px",fontSize:16,borderRadius:10,border:"1.5px solid #E2E8F0",outline:"none",color:"#1a2a3a",background:"#fff",boxSizing:"border-box",resize:"none",fontFamily:"inherit",lineHeight:1.4}}/>
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
-              {[["今月投稿",mPosts],["目標",fd.goal.toLocaleString()],["達成率",`${Math.round((fd.current/fd.goal)*100)}%`]].map(([l,v])=>(
-                <div key={l} style={{background:"#F8FAFC",borderRadius:10,padding:"8px",textAlign:"center"}}>
-                  <div style={{fontSize:16,fontWeight:700,color:acc.color}}>{v}</div>
-                  <div style={{fontSize:10,color:"#94A3B8",marginTop:1}}>{l}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#94A3B8",marginBottom:4}}>
-              <span>{fd.current.toLocaleString()} フォロワー</span><span>目標 {fd.goal.toLocaleString()}</span>
-            </div>
-            <div style={{background:"#F1F5F9",borderRadius:6,height:7,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${Math.min((fd.current/fd.goal)*100,100)}%`,background:`linear-gradient(to right,${acc.color},${acc.color}88)`,borderRadius:6}}/>
-            </div>
-            {accounts.length>1 && <button onClick={()=>setAccounts(accounts.filter(a=>a.id!==acc.id))} style={{marginTop:8,padding:"4px 10px",borderRadius:6,background:"#FFF5F5",border:"1px solid #FECACA",color:"#EF4444",fontSize:11,cursor:"pointer"}}>削除</button>}
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  return (
-    <div style={{fontFamily:"'Hiragino Sans','Noto Sans JP',sans-serif",background:"#F0F4F8",minHeight:"100vh",paddingBottom:80}}>
-      <div style={{background:"#fff",borderBottom:"1px solid #E2E8F0",padding:"13px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
-        <div>
-          <div style={{fontSize:19,fontWeight:800,color:"#6C63FF",letterSpacing:"-0.5px"}}>PostBoard</div>
-          <div style={{fontSize:10,color:"#94A3B8"}}>SNS投稿管理カレンダー</div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <div style={{background:"#FFF7F5",border:"1px solid #FDBA74",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#EA580C",fontWeight:700}}>🔥 {streak}日連続</div>
-          <div style={{background:"#EEF2FF",border:"1px solid #A5B4FC",borderRadius:20,padding:"4px 10px",fontSize:12,color:"#6C63FF",fontWeight:700}}>📝 {totalPosts}投稿</div>
-        </div>
-      </div>
-      <div style={{margin:"12px 12px 0",background:"linear-gradient(135deg,#EEF2FF,#F5F3FF)",border:"1px solid #C7D2FE",borderRadius:14,padding:"12px 14px",display:"flex",alignItems:"flex-start",gap:10}}>
-        <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-          <div style={{fontSize:10,color:"#6C63FF",fontWeight:700}}>👑</div>
-          <div style={{fontSize:30,lineHeight:1}}>🐸</div>
-          <div style={{fontSize:8,color:"#6C63FF",fontWeight:700,whiteSpace:"nowrap"}}>カ・エルデ</div>
-        </div>
-        <div style={{position:"relative",background:"#fff",borderRadius:12,padding:"8px 12px",border:"1px solid #C7D2FE",flex:1}}>
-          <div style={{position:"absolute",left:-7,top:12,width:0,height:0,borderTop:"6px solid transparent",borderBottom:"6px solid transparent",borderRight:"7px solid #C7D2FE"}}/>
-          <div style={{position:"absolute",left:-5,top:13,width:0,height:0,borderTop:"5px solid transparent",borderBottom:"5px solid transparent",borderRight:"6px solid #fff"}}/>
-          <div style={{fontSize:9,color:"#6C63FF",fontWeight:700,marginBottom:3}}>ピョコピョコからひとこと💬</div>
-          <div style={{fontSize:12,color:"#3730A3",lineHeight:1.6}}>{mascotMsg}</div>
-        </div>
-      </div>
-      {view==="calendar"  && <CalendarView/>}
-      {view==="analytics" && <AnalyticsView/>}
-      {view==="accounts"  && <AccountsView/>}
-      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#fff",borderTop:"1px solid #E2E8F0",display:"flex",zIndex:100}}>
-        {[["calendar","カレンダー","📅"],["analytics","分析","📊"],["accounts","アカウント","👤"]].map(([v,label,icon])=>(
-          <button key={v} onClick={()=>setView(v)} style={{flex:1,padding:"10px 0 6px",border:"none",background:"transparent",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:view===v?"#6C63FF":"#94A3B8",fontSize:10,fontWeight:view===v?700:400}}>
-            <span style={{fontSize:18}}>{icon}</span>{label}
-          </button>
-        ))}
-      </div>
-      {showModal && (
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"flex-end",zIndex:200}} onClick={()=>setShowModal(false)}>
-          <div style={{width:"100%",background:"#fff",borderRadius:"24px 24px 0 0",padding:"24px 20px 36px",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <div style={{fontSize:16,fontWeight:700}}>新規投稿を記録</div>
-              <button onClick={()=>setShowModal(false)} style={{width:28,height:28,borderRadius:"50%",background:"#F1F5F9",border:"none",cursor:"pointer",fontSize:14,color:"#64748B"}}>✕</button>
-            </div>
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>アカウント</div>
-              <select value={newPost.accountId} onChange={e=>setNewPost({...newPost,accountId:e.target.value})} style={inp}>
-                {accounts.map(a=>{const pl=PLATFORMS.find(p=>p.id===a.platform);return <option key={a.id} value={a.id}>{pl?.emoji} {a.name}（{pl?.name}）</option>;})}
-              </select>
-            </div>
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>プラットフォーム</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {PLATFORMS.map(p=><button key={p.id} onClick={()=>setNewPost({...newPost,platform:p.id})} style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${newPost.platform===p.id?p.color:"#E2E8F0"}`,background:newPost.platform===p.id?p.color+"18":"#fff",fontSize:12,cursor:"pointer",color:"#1a2a3a",fontWeight:newPost.platform===p.id?700:400}}>{p.emoji} {p.name}</button>)}
-              </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              <div>
-                <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>❤️ いいね数</div>
-                <input type="number" value={newPost.likes} onChange={e=>setNewPost({...newPost,likes:e.target.value})} placeholder="0" style={inp}/>
-              </div>
-              <div>
-                <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>🕐 投稿時間</div>
-                <input type="time" value={newPost.time} onChange={e=>setNewPost({...newPost,time:e.target.value})} style={inp}/>
-              </div>
-            </div>
-            <div style={{marginBottom:20}}>
-              <div style={{fontSize:12,color:"#64748B",fontWeight:600,marginBottom:6}}>メモ（任意）</div>
-              <input type="text" value={newPost.content} onChange={e=>setNewPost({...newPost,content:e.target.value})} placeholder="リール投稿、保存率が高かった！" style={inp}/>
-            </div>
-            <button onClick={doAddPost} style={{width:"100%",padding:14,background:"#6C63FF",border:"none",borderRadius:14,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>保存する</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+function getBuzz(likes){
+  if(likes>=301)return{label:'爆バズ',color:'#FF4500',bg:'#FFF0EB'};
+  if(likes>=101)return{label:'バズ',  color:'#FF8C00',bg:'#FFF8ED'};
+  if(likes>=31) return{label:'好調',  color:'#F59E0B',bg:'#FFFBEB'};
+  if(likes>=11) return{label:'',      color:'#6C63FF',bg:'#EEF2FF'};
+  return{label:'',color:'#CBD5E1',bg:'#F8FAFC'};
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<PostBoard/>);
-  </script>
+function load(key,def){try{const s=localStorage.getItem(key);return s?JSON.parse(s):def;}catch{return def;}}
+function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch{}}
+
+// Reset on version change
+const VERSION='v2.0';
+if(localStorage.getItem('pb_version')!==VERSION){
+  ['pb_postData','pb_accounts','pb_followerData','pb_streak','pb_bestStreak'].forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem('pb_version',VERSION);
+}
+
+const defaultFollower={
+  acc1:{current:0,goal:1000,history:[0,0,0,0,0,0,0]},
+  acc2:{current:0,goal:1000,history:[0,0,0,0,0,0,0]},
+  acc3:{current:0,goal:1000,history:[0,0,0,0,0,0,0]},
+  acc4:{current:0,goal:1000,history:[0,0,0,0,0,0,0]},
+  acc5:{current:0,goal:1000,history:[0,0,0,0,0,0,0]},
+};
+
+let state={
+  view:'calendar',
+  year:new Date().getFullYear(),
+  month:new Date().getMonth(),
+  selectedDay:null,
+  postData:load('pb_postData',{}),
+  accounts:load('pb_accounts',DEFAULT_ACCOUNTS),
+  followerData:load('pb_followerData',defaultFollower),
+  streak:load('pb_streak',0),
+  bestStreak:load('pb_bestStreak',0),
+  showModal:false,
+  newPost:{accountId:'acc1',platform:'threads',likes:'',content:'',time:''},
+  editingId:null,
+  hmFilter:'all',
+  weekMode:'posts',
+  fwAccId:'acc1',
+};
+
+function setState(updates){
+  Object.assign(state,updates);
+  if(updates.postData!==undefined)save('pb_postData',state.postData);
+  if(updates.accounts!==undefined)save('pb_accounts',state.accounts);
+  if(updates.followerData!==undefined)save('pb_followerData',state.followerData);
+  if(updates.streak!==undefined)save('pb_streak',state.streak);
+  if(updates.bestStreak!==undefined)save('pb_bestStreak',state.bestStreak);
+  render();
+}
+
+function getDayKey(y,m,d){return `${y}-${m+1}-${d}`;}
+
+function pill(label,active,color='#6C63FF',onclick){
+  const btn=document.createElement('button');
+  btn.textContent=label;
+  btn.style.cssText=`padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-weight:${active?700:400};background:${active?color:'#F1F5F9'};border:1px solid ${active?color:'#E2E8F0'};color:${active?'#fff':'#64748B'};`;
+  btn.onclick=onclick;
+  return btn;
+}
+
+function el(tag,cls,html){
+  const e=document.createElement(tag);
+  if(cls)e.className=cls;
+  if(html!==undefined)e.innerHTML=html;
+  return e;
+}
+
+function renderCalendar(){
+  const wrap=el('div','cal-wrap');
+  const {year,month,selectedDay,postData,accounts}=state;
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const today=new Date();
+
+  // Nav
+  const nav=el('div','cal-nav');
+  const prevBtn=el('button','cal-nav-btn','‹');
+  prevBtn.onclick=()=>{ let m=month-1,y=year; if(m<0){m=11;y--;} setState({month:m,year:y,selectedDay:null}); };
+  const titleEl=el('span','cal-title',`${year}年${month+1}月`);
+  const nextBtn=el('button','cal-nav-btn','›');
+  nextBtn.onclick=()=>{ let m=month+1,y=year; if(m>11){m=0;y++;} setState({month:m,year:y,selectedDay:null}); };
+  nav.append(prevBtn,titleEl,nextBtn);
+  wrap.append(nav);
+
+  // Grid
+  const grid=el('div','cal-grid');
+  const head=el('div','cal-head');
+  DAYS.forEach((d,i)=>{ const dd=el('div','cal-head-day',d); dd.style.color=i===0?'#EF4444':i===6?'#3B82F6':'#94A3B8'; head.append(dd); });
+  grid.append(head);
+  const days=el('div','cal-days');
+  for(let i=0;i<firstDay;i++){
+    const e=el('div','cal-day'); e.style.cssText='border-right:1px solid #F1F5F9;background:#FAFBFC;'; days.append(e);
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const key=getDayKey(year,month,d);
+    const dd=postData[key];
+    const isToday=d===today.getDate()&&month===today.getMonth()&&year===today.getFullYear();
+    const isSel=selectedDay===d;
+    const col=(firstDay+d-1)%7;
+    const maxL=dd?Math.max(...dd.posts.map(p=>p.likes)):0;
+    const buzz=getBuzz(maxL);
+    const cell=el('div','cal-day');
+    cell.style.cssText=`border-right:${col<6?'1px solid #F1F5F9':'none'};border-bottom:1px solid #F1F5F9;background:${isSel?'#EEF2FF':dd?buzz.bg:'#fff'};box-shadow:${isSel?'inset 0 0 0 2px #6C63FF':isToday?'inset 0 0 0 2px #6C63FF66':'none'};`;
+    cell.onclick=()=>setState({selectedDay:isSel?null:d});
+    const num=el('div','cal-day-num',String(d));
+    num.style.cssText=`font-weight:${isToday?700:400};color:${isToday?'#6C63FF':col===0?'#EF4444':col===6?'#3B82F6':'#1a2a3a'};background:${isToday?'#EEF2FF':'transparent'};`;
+    cell.append(num);
+    if(dd){
+      const bz=el('div','cal-day-buzz',buzz.label||`❤️${maxL}`);
+      bz.style.color=buzz.color;
+      const dots=el('div','cal-day-dots');
+      [...new Set(dd.posts.map(p=>p.accountId))].slice(0,3).forEach(aid=>{
+        const a=accounts.find(x=>x.id===aid);
+        const dot=el('div','cal-day-dot');
+        dot.style.background=a?a.color:'#ccc';
+        dots.append(dot);
+      });
+      cell.append(bz,dots);
+    }
+    days.append(cell);
+  }
+  grid.append(days);
+  wrap.append(grid);
+
+  // Legend
+  const leg=el('div','legend');
+  leg.append(el('div','legend-title','❤️ いいね数で色が変わる！'));
+  const items=el('div','legend-items');
+  [['0-10','#CBD5E1'],['11-30','#6C63FF'],['31-100','#F59E0B'],['101-300','#FF8C00'],['301~','#FF4500']].forEach(([l,c])=>{
+    const item=el('div','legend-item');
+    const dot=el('div','legend-dot'); dot.style.cssText=`background:${c}55;border:1px solid ${c};`; 
+    item.append(dot,document.createTextNode(l)); items.append(item);
+  });
+  leg.append(items);
+  wrap.append(leg);
+
+  // Selected day
+  if(selectedDay){
+    const panel=el('div','card'); panel.style.marginTop='12px';
+    const dh=el('div','detail-header');
+    dh.append(el('span','detail-title',`${month+1}月${selectedDay}日`));
+    const rb=el('button','record-btn','＋ 投稿を記録');
+    rb.onclick=()=>setState({showModal:true});
+    dh.append(rb); panel.append(dh);
+    const dayData=postData[getDayKey(year,month,selectedDay)];
+    if(dayData&&dayData.posts.length>0){
+      dayData.posts.forEach(post=>{
+        const acc=accounts.find(a=>a.id===post.accountId);
+        const plat=PLATFORMS.find(p=>p.id===post.platform);
+        const bz=getBuzz(post.likes);
+        const item=el('div','post-item'); item.style.borderLeft=`3px solid ${acc?acc.color:'#6C63FF'}`;
+        const inner=el('div','post-item-inner');
+        const left=el('div','post-item-left');
+        const icon=el('div','post-item-icon',plat?plat.emoji:''); icon.style.background=(acc?acc.color:'#6C63FF')+'20';
+        const info=el('div');
+        const name=el('div','post-item-name',`${plat?plat.name:''} · ${acc?acc.name:''}`); name.style.color=acc?acc.color:'#6C63FF';
+        const memo=el('div','post-item-memo',(post.content||'投稿')+(post.time?` · ${post.time}`:''));
+        info.append(name,memo); left.append(icon,info);
+        const right=el('div');
+        const likes=el('div','post-item-likes',`❤️ ${post.likes}`); likes.style.color=bz.color;
+        right.append(likes);
+        if(bz.label){const bl=el('div','post-item-buzz',bz.label);bl.style.color=bz.color;right.append(bl);}
+        inner.append(left,right); item.append(inner); panel.append(item);
+      });
+    }else{ panel.append(el('div','no-post','この日の投稿はまだないよ')); }
+    wrap.append(panel);
+  }
+
+  // FAB
+  if(!selectedDay){
+    const fab=el('button','fab','＋');
+    fab.onclick=()=>{
+      setState({selectedDay:today.getDate(),showModal:true});
+    };
+    wrap.append(fab);
+  }
+  return wrap;
+}
+
+function renderAnalytics(){
+  const wrap=el('div','analytics-wrap');
+  const {postData,accounts,hmFilter,weekMode,fwAccId,year,month}=state;
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+
+  // Heatmap
+  const hmc=el('div','card');
+  hmc.append(el('div','section-title','📊 投稿頻度ヒートマップ'));
+  const pr=el('div','pill-row');
+  pr.append(pill('全アカウント',hmFilter==='all','#6C63FF',()=>setState({hmFilter:'all'})));
+  accounts.forEach(a=>{
+    const plat=PLATFORMS.find(p=>p.id===a.platform);
+    pr.append(pill(`${plat?plat.emoji:''} ${a.name}`,hmFilter===a.id,a.color,()=>setState({hmFilter:a.id})));
+  });
+  hmc.append(pr);
+  const hmHead=el('div','heatmap-head');
+  DAYS.forEach((d,i)=>{ const dd=el('div','hm-day-label',d); dd.style.color=i===0?'#EF4444':i===6?'#3B82F6':'#94A3B8'; hmHead.append(dd); });
+  hmc.append(hmHead);
+  const hmGrid=el('div','heatmap-grid');
+  for(let i=0;i<firstDay;i++) hmGrid.append(el('div'));
+  for(let d=1;d<=daysInMonth;d++){
+    const posts=(postData[getDayKey(year,month,d)]||{posts:[]}).posts;
+    const cnt=hmFilter==='all'?posts.length:posts.filter(p=>p.accountId===hmFilter).length;
+    const ac=accounts.find(a=>a.id===hmFilter);
+    let rgb='108,99,255';
+    if(hmFilter!=='all'&&ac){
+      const hex=ac.color.replace('#','');
+      const r=parseInt(hex.substr(0,2),16);
+      const g=parseInt(hex.substr(2,2),16);
+      const b=parseInt(hex.substr(4,2),16);
+      rgb=`${r},${g},${b}`;
+    }
+    const op=cnt===0?0.07:Math.min(0.2+cnt*0.3,1);
+    const cell=el('div','hm-cell',cnt>0?String(cnt):'');
+    cell.style.cssText=`background:rgba(${rgb},${op});color:${op>0.5?'#fff':'transparent'};`;
+    hmGrid.append(cell);
+  }
+  hmc.append(hmGrid);
+  const lb=el('div','legend-bar');
+  lb.append(Object.assign(el('span'),'',Object.assign(document.createTextNode('少ない'))));
+  lb.append(document.createTextNode('少ない'));
+  [0.07,0.25,0.5,0.75,1].forEach(o=>{ const b=el('div','legend-box'); b.style.background=`rgba(108,99,255,${o})`; lb.append(b); });
+  lb.append(document.createTextNode('多い'));
+  hmc.append(lb);
+  wrap.append(hmc);
+
+  // Weekly heatmap
+  const wc=el('div','card');
+  const wh=el('div'); wh.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+  wh.append(el('div','section-title','⏰ 曜日×時間帯分析'));
+  const wr=el('div'); wr.style.cssText='display:flex;gap:6px;';
+  wr.append(pill('投稿数',weekMode==='posts','#6C63FF',()=>setState({weekMode:'posts'})));
+  wr.append(pill('いいね平均',weekMode==='likes','#6C63FF',()=>setState({weekMode:'likes'})));
+  wh.append(wr); wc.append(wh);
+  const slots=[
+    {label:'深夜\n0-5時', hours:[0,1,2,3,4,5]},
+    {label:'朝\n6-9時',   hours:[6,7,8,9]},
+    {label:'昼\n10-14時', hours:[10,11,12,13,14]},
+    {label:'夕方\n15-18時',hours:[15,16,17,18]},
+    {label:'夜\n19-23時', hours:[19,20,21,22,23]},
+  ];
+  const headRow=el('div','week-grid-row');
+  headRow.append(el('div'));
+  DAYS.forEach((d,i)=>{ const dd=el('div','hm-day-label',d); dd.style.color=i===0?'#EF4444':i===6?'#3B82F6':'#94A3B8'; headRow.append(dd); });
+  wc.append(headRow);
+  const grid=slots.map(slot=>DAYS.map((_,di)=>{
+    const posts=Object.entries(postData).flatMap(([k,v])=>{
+      const [y2,m2,d2]=k.split('-').map(Number);
+      if(new Date(y2,m2-1,d2).getDay()!==di)return[];
+      return v.posts.filter(p=>p.time&&slot.hours.includes(parseInt(p.time)));
+    });
+    return{count:posts.length,avgLikes:posts.length?Math.round(posts.reduce((s,p)=>s+p.likes,0)/posts.length):0};
+  }));
+  const maxVal=Math.max(...grid.flat().map(c=>weekMode==='posts'?c.count:c.avgLikes),1);
+  slots.forEach((slot,si)=>{
+    const row=el('div','week-grid-row');
+    const lbl=el('div','week-label',slot.label);
+    row.append(lbl);
+    grid[si].forEach(cell=>{
+      const val=weekMode==='posts'?cell.count:cell.avgLikes;
+      const op=val===0?0.06:0.15+(val/maxVal)*0.8;
+      const c=el('div','hm-cell',val>0?String(val):'');
+      c.style.cssText=`background:rgba(108,99,255,${op});color:${op>0.5?'#fff':'#94A3B8'};`;
+      row.append(c);
+    });
+    wc.append(row);
+  });
+  const wNote=el('div'); wNote.style.cssText='margin-top:6px;font-size:10px;color:#94A3B8;text-align:center;';
+  wNote.textContent=weekMode==='posts'?'色が濃い = 投稿が多い時間帯':'色が濃い = いいね平均が高い時間帯';
+  wc.append(wNote);
+  wrap.append(wc);
+
+  // Follower graph
+  const fc=el('div','card');
+  fc.append(el('div','section-title','📈 フォロワー推移グラフ'));
+  const fpr=el('div','pill-row');
+  accounts.forEach(a=>{
+    const plat=PLATFORMS.find(p=>p.id===a.platform);
+    fpr.append(pill(`${plat?plat.emoji:''} ${a.name}`,fwAccId===a.id,a.color,()=>setState({fwAccId:a.id})));
+  });
+  fc.append(fpr);
+  const fd=state.followerData[fwAccId];
+  const acc=accounts.find(a=>a.id===fwAccId);
+  if(fd&&acc){
+    const plat=PLATFORMS.find(p=>p.id===acc.platform);
+    const fNote=el('div','fw-note');
+    fNote.style.color=acc.color;
+    fNote.innerHTML=`${plat?plat.name:''} ${acc.name}<span class="fw-sub">7週間の推移</span>`;
+    fc.append(fNote);
+    const fMin=Math.min(...fd.history);
+    const fRange=Math.max(...fd.history)-fMin||1;
+    const chartDiv=el('div','fw-chart');
+    const svgNS='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(svgNS,'svg');
+    svg.setAttribute('width','100%'); svg.setAttribute('height','130'); svg.setAttribute('viewBox','0 0 300 130'); svg.setAttribute('preserveAspectRatio','none');
+    const defs=document.createElementNS(svgNS,'defs');
+    const grad=document.createElementNS(svgNS,'linearGradient');
+    grad.setAttribute('id','grad'); grad.setAttribute('x1','0'); grad.setAttribute('y1','0'); grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
+    const s1=document.createElementNS(svgNS,'stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color',acc.color); s1.setAttribute('stop-opacity','0.25');
+    const s2=document.createElementNS(svgNS,'stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color',acc.color); s2.setAttribute('stop-opacity','0.02');
+    grad.append(s1,s2); defs.append(grad); svg.append(defs);
+    [0,1,2,3].forEach(i=>{ const line=document.createElementNS(svgNS,'line'); line.setAttribute('x1','0'); line.setAttribute('y1',String(15+i*28)); line.setAttribute('x2','300'); line.setAttribute('y2',String(15+i*28)); line.setAttribute('stroke','#F1F5F9'); line.setAttribute('stroke-width','1'); svg.append(line); });
+    const pts=fd.history.map((v,i)=>`${i*(300/6)},${115-((v-fMin)/fRange)*95}`);
+    const area=document.createElementNS(svgNS,'path');
+    area.setAttribute('d',`M ${pts.join(' L ')} L ${6*(300/6)},115 L 0,115 Z`); area.setAttribute('fill','url(#grad)'); svg.append(area);
+    const line=document.createElementNS(svgNS,'polyline');
+    line.setAttribute('points',pts.join(' ')); line.setAttribute('fill','none'); line.setAttribute('stroke',acc.color); line.setAttribute('stroke-width','2.5'); line.setAttribute('stroke-linejoin','round'); svg.append(line);
+    fd.history.forEach((v,i)=>{ const c=document.createElementNS(svgNS,'circle'); c.setAttribute('cx',String(i*(300/6))); c.setAttribute('cy',String(115-((v-fMin)/fRange)*95)); c.setAttribute('r','3.5'); c.setAttribute('fill',i===fd.history.length-1?acc.color:'#fff'); c.setAttribute('stroke',acc.color); c.setAttribute('stroke-width','2'); svg.append(c); });
+    chartDiv.append(svg);
+    const flbl=el('div','fw-label',`${fd.current.toLocaleString()}<br><span style="font-size:9px;font-weight:400">フォロワー</span>`);
+    flbl.style.background=acc.color; chartDiv.append(flbl);
+    fc.append(chartDiv);
+    const xrow=el('div','fw-xlabel');
+    ['Week1','Week2','Week3','Week4','Week5','Week6','Week7'].forEach(l=>xrow.append(el('span','',l)));
+    fc.append(xrow);
+    const gbox=el('div','fw-goal-box');
+    const grow=el('div','fw-goal-row');
+    const gl=el('span'); gl.style.color='#64748B'; gl.textContent=`目標：${fd.goal.toLocaleString()} フォロワー`;
+    const gp=el('span'); gp.style.cssText=`font-weight:700;color:${acc.color};`; gp.textContent=`${Math.round((fd.current/fd.goal)*100)}%`;
+    grow.append(gl,gp); gbox.append(grow);
+    const bg=el('div','fw-bar-bg');
+    const fill=el('div','fw-bar-fill'); fill.style.cssText=`width:${Math.min((fd.current/fd.goal)*100,100)}%;background:linear-gradient(to right,${acc.color},${acc.color}88);`;
+    bg.append(fill); gbox.append(bg);
+    const gnote=el('div','fw-goal-note',`あと ${(fd.goal-fd.current).toLocaleString()} フォロワーで達成！`);
+    gbox.append(gnote); fc.append(gbox);
+  }
+  wrap.append(fc);
+
+  // Streak
+  const sc=el('div','card');
+  sc.append(el('div','section-title','🔥 連続投稿ストリーク'));
+  const scenter=el('div','streak-center');
+  scenter.append(el('div','streak-num',String(state.streak)));
+  scenter.append(el('div','streak-label','日連続中！'));
+  scenter.append(el('div','streak-best',`最高記録：${state.bestStreak}日`));
+  sc.append(scenter);
+  const sdots=el('div','streak-dots');
+  ['火','水','木','金','土','日','月'].forEach((d,i)=>{
+    const wrap2=el('div','streak-dot-wrap');
+    const dot=el('div','streak-dot',i<state.streak%7?'✓':'');
+    dot.style.cssText=`background:${i<state.streak%7?'#6C63FF':'#F1F5F9'};color:${i<state.streak%7?'#fff':'#CBD5E1'};`;
+    wrap2.append(dot,el('div','streak-day',d)); sdots.append(wrap2);
+  });
+  sc.append(sdots);
+  const sbars=el('div','streak-bars');
+  [3,5,5,5,4,5,5].forEach((v,i)=>{
+    const bw=el('div','streak-bar-wrap');
+    const bar=el('div','streak-bar');
+    bar.style.cssText=`height:${v*10}px;background:${i===6?'#FF6B35':'#6C63FF'};opacity:${i===6?1:0.55};`;
+    bw.append(bar,el('div','streak-bar-label',['月','火','水','木','金','土','日'][i]));
+    sbars.append(bw);
+  });
+  sc.append(sbars);
+  sc.append(el('div','streak-msg','🔥 消えないように続けよう！'));
+  wrap.append(sc);
+  return wrap;
+}
+
+function renderAccounts(){
+  const wrap=el('div','acc-wrap');
+  const {accounts,postData,followerData}=state;
+  const ah=el('div','acc-header');
+  ah.append(el('span','acc-header-title','アカウント一覧'));
+  const addBtn=el('button','acc-add-btn','＋ 追加');
+  addBtn.onclick=()=>{
+    const id=`acc${Date.now()}`;
+    const colors=['#6C63FF','#E1306C','#01CBC6','#FF9F43','#54A0FF'];
+    const newAccounts=[...accounts,{id,name:'新しいアカウント',platform:'twitter',color:colors[accounts.length%colors.length]}];
+    const newFd=Object.assign({},followerData,{[id]:{current:0,goal:1000,history:[0,0,0,0,0,0,0]}});
+    setState({accounts:newAccounts,followerData:newFd});
+  };
+  ah.append(addBtn); wrap.append(ah);
+
+  accounts.forEach(acc=>{
+    const plat=PLATFORMS.find(p=>p.id===acc.platform);
+    const fd=followerData[acc.id]||{current:0,goal:1000,history:[0,0,0,0,0,0,0]};
+    const mPosts=Object.values(postData).reduce((s,d)=>s+d.posts.filter(p=>p.accountId===acc.id).length,0);
+    const card2=el('div','card');
+
+    const topRow=el('div'); topRow.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:12px;';
+    const icon=el('div','acc-icon',plat?plat.emoji:''); icon.style.background=acc.color+'20';
+    const info=el('div'); info.style.flex='1';
+
+    if(state.editingId===acc.id){
+      const erow=el('div'); erow.style.cssText='display:flex;gap:6px;align-items:flex-start;';
+      const ta=document.createElement('textarea');
+      ta.defaultValue=acc.name; ta.rows=1; ta.className='acc-textarea';
+      ta.style.cssText=`flex:1;border:2px solid ${acc.color};min-width:0;`;
+      ta.placeholder='アカウント名を入力';
+      const saveBtn=el('button'); saveBtn.textContent='保存'; saveBtn.style.cssText=`padding:10px 14px;border-radius:10px;background:${acc.color};border:none;color:#fff;font-weight:700;cursor:pointer;font-size:14px;flex-shrink:0;`;
+      saveBtn.onclick=()=>{
+        const val=ta.value.trim();
+        if(!val)return;
+        setState({accounts:accounts.map(a=>a.id===acc.id?{...a,name:val}:a),editingId:null});
+      };
+      const cancelBtn=el('button'); cancelBtn.textContent='✕'; cancelBtn.style.cssText='padding:10px 12px;border-radius:10px;background:#F1F5F9;border:none;color:#64748B;cursor:pointer;font-size:14px;flex-shrink:0;';
+      cancelBtn.onclick=()=>setState({editingId:null});
+      erow.append(ta,saveBtn,cancelBtn); info.append(erow);
+    }else{
+      const erow=el('div','acc-edit-row');
+      const pname=el('span'); pname.style.cssText=`font-weight:700;font-size:14px;color:${acc.color};`; pname.textContent=plat?plat.name:'';
+      const aname=el('span'); aname.style.fontSize='13px'; aname.textContent=acc.name;
+      const editBtn=el('button'); editBtn.textContent='✏️ 編集'; editBtn.style.cssText='margin-left:auto;padding:4px 10px;border-radius:6px;background:#F1F5F9;border:1px solid #E2E8F0;color:#64748B;font-size:12px;cursor:pointer;';
+      editBtn.onclick=()=>setState({editingId:acc.id});
+      erow.append(pname,aname,editBtn); info.append(erow);
+    }
+
+    const platBtns=el('div','acc-plat-btns');
+    PLATFORMS.forEach(p=>{
+      const pb=el('button','acc-plat-btn',p.emoji);
+      pb.style.cssText=`border:1px solid ${acc.platform===p.id?acc.color:'#E2E8F0'};background:${acc.platform===p.id?acc.color+'18':'transparent'};`;
+      pb.onclick=()=>setState({accounts:accounts.map(a=>a.id===acc.id?{...a,platform:p.id}:a)});
+      platBtns.append(pb);
+    });
+    info.append(platBtns);
+    topRow.append(icon,info); card2.append(topRow);
+
+    // Follower inputs
+    const inputGrid=el('div'); inputGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;';
+    ['👥 現在のフォロワー数','🎯 目標フォロワー数'].forEach((lbl,idx)=>{
+      const div=el('div');
+      const label=el('div','acc-input-label',lbl);
+      const ta=document.createElement('textarea');
+      ta.rows=1; ta.className='acc-textarea';
+      ta.defaultValue=idx===0?(fd.current||''):(fd.goal||'');
+      ta.placeholder=idx===0?'0':'1000';
+      ta.onblur=e=>{
+        const val=Number(e.target.value.replace(/[^0-9]/g,''))||0;
+        const newFd=Object.assign({},followerData,{[acc.id]:Object.assign({},fd,idx===0?{current:val}:{goal:val||1})});
+        setState({followerData:newFd});
+      };
+      div.append(label,ta); inputGrid.append(div);
+    });
+    card2.append(inputGrid);
+
+    // Stats
+    const stats=el('div','acc-stats');
+    [['今月投稿',mPosts],['目標',fd.goal.toLocaleString()],['達成率',`${Math.round((fd.current/fd.goal)*100)}%`]].forEach(([l,v])=>{
+      const s=el('div','acc-stat');
+      const sv=el('div','acc-stat-val',String(v)); sv.style.color=acc.color;
+      s.append(sv,el('div','acc-stat-label',l)); stats.append(s);
+    });
+    card2.append(stats);
+
+    const fwrow=el('div','acc-fw-row');
+    fwrow.append(el('span','',`${fd.current.toLocaleString()} フォロワー`),el('span','',`目標 ${fd.goal.toLocaleString()}`));
+    card2.append(fwrow);
+    const barbg=el('div','acc-bar-bg');
+    const barfill=el('div','acc-bar-fill');
+    barfill.style.cssText=`width:${Math.min((fd.current/fd.goal)*100,100)}%;background:linear-gradient(to right,${acc.color},${acc.color}88);`;
+    barbg.append(barfill); card2.append(barbg);
+
+    if(accounts.length>1){
+      const del=el('button','acc-del-btn','削除');
+      del.onclick=()=>setState({accounts:accounts.filter(a=>a.id!==acc.id)});
+      card2.append(del);
+    }
+    wrap.append(card2);
+  });
+  return wrap;
+}
+
+function renderModal(){
+  const {accounts,newPost}=state;
+  const overlay=el('div','modal-overlay');
+  overlay.onclick=()=>setState({showModal:false});
+  const box=el('div','modal-box');
+  box.onclick=e=>e.stopPropagation();
+  const mh=el('div','modal-header');
+  mh.append(el('div','modal-title','新規投稿を記録'));
+  const mc=el('button','modal-close','✕'); mc.onclick=()=>setState({showModal:false});
+  mh.append(mc); box.append(mh);
+
+  // Account select
+  const al=el('div'); al.style.marginBottom='14px';
+  al.append(el('div','modal-label','アカウント'));
+  const sel=document.createElement('select'); sel.className='modal-select';
+  accounts.forEach(a=>{
+    const plat=PLATFORMS.find(p=>p.id===a.platform);
+    const opt=document.createElement('option'); opt.value=a.id; opt.textContent=`${plat?plat.emoji:''} ${a.name}（${plat?plat.name:''}）`;
+    if(a.id===newPost.accountId)opt.selected=true;
+    sel.append(opt);
+  });
+  sel.onchange=e=>setState({newPost:Object.assign({},newPost,{accountId:e.target.value})});
+  al.append(sel); box.append(al);
+
+  // Platform
+  const pl=el('div'); pl.style.marginBottom='14px';
+  pl.append(el('div','modal-label','プラットフォーム'));
+  const pbtns=el('div','plat-btns');
+  PLATFORMS.forEach(p=>{
+    const pb=el('button','plat-btn',`${p.emoji} ${p.name}`);
+    pb.style.cssText=`border:1.5px solid ${newPost.platform===p.id?p.color:'#E2E8F0'};background:${newPost.platform===p.id?p.color+'18':'#fff'};font-weight:${newPost.platform===p.id?700:400};`;
+    pb.onclick=()=>setState({newPost:Object.assign({},newPost,{platform:p.id})});
+    pbtns.append(pb);
+  });
+  pl.append(pbtns); box.append(pl);
+
+  // Likes & Time
+  const lg=el('div','grid2');
+  const ld=el('div');
+  ld.append(el('div','modal-label','❤️ いいね数'));
+  const li=document.createElement('input'); li.type='number'; li.className='modal-input'; li.value=newPost.likes; li.placeholder='0';
+  li.oninput=e=>{ state.newPost=Object.assign({},newPost,{likes:e.target.value}); };
+  ld.append(li);
+  const td=el('div');
+  td.append(el('div','modal-label','🕐 投稿時間'));
+  const ti=document.createElement('input'); ti.type='time'; ti.className='modal-input'; ti.value=newPost.time;
+  ti.onchange=e=>{ state.newPost=Object.assign({},newPost,{time:e.target.value}); };
+  td.append(ti);
+  lg.append(ld,td); box.append(lg);
+
+  // Memo
+  const md=el('div'); md.style.marginBottom='20px';
+  md.append(el('div','modal-label','メモ（任意）'));
+  const mi=document.createElement('input'); mi.type='text'; mi.className='modal-input'; mi.value=newPost.content; mi.placeholder='リール投稿、保存率が高かった！';
+  mi.oninput=e=>{ state.newPost=Object.assign({},newPost,{content:e.target.value}); };
+  md.append(mi); box.append(md);
+
+  const sb=el('button','save-btn','保存する');
+  sb.onclick=()=>{
+    const {selectedDay,year,month,postData}=state;
+    if(!selectedDay)return;
+    const key=getDayKey(year,month,selectedDay);
+    const existing=postData[key]||{posts:[],followerChange:0};
+    const t=state.newPost.time||new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    const newPostData=Object.assign({},postData,{[key]:Object.assign({},existing,{posts:[...existing.posts,{...state.newPost,likes:Number(state.newPost.likes)||0,id:String(Date.now()),time:t}]})});
+    const firstAccId=state.accounts[0]?state.accounts[0].id:'acc1';
+    setState({postData:newPostData,showModal:false,newPost:{accountId:firstAccId,platform:'threads',likes:'',content:'',time:''}});
+  };
+  box.append(sb);
+  overlay.append(box);
+  return overlay;
+}
+
+function render(){
+  const {view,streak,state:_,accounts}=state;
+  const app=document.getElementById('app');
+  app.innerHTML='';
+
+  // Header
+  const header=el('div','header');
+  const htitle=el('div');
+  htitle.append(el('div','header-title','PostBoard'));
+  htitle.append(el('div','header-sub','SNS投稿管理カレンダー'));
+  const hbadges=el('div','header-badges');
+  hbadges.append(el('div','badge-fire',`🔥 ${state.streak}日連続`));
+  const {year,month,postData}=state;
+  const totalPosts=Object.keys(postData).filter(k=>k.startsWith(`${year}-${month+1}`)).reduce((s,k)=>s+postData[k].posts.length,0);
+  hbadges.append(el('div','badge-post',`📝 ${totalPosts}投稿`));
+  header.append(htitle,hbadges);
+  app.append(header);
+
+  // Mascot
+  const mascotMsg=state.streak>=7?MASCOT_MESSAGES[2]:state.streak>=3?MASCOT_MESSAGES[1]:MASCOT_MESSAGES[5];
+  const mas=el('div','mascot');
+  const micon=el('div','mascot-icon');
+  micon.append(el('div','mascot-crown','👑'),el('div','mascot-frog','🐸'),el('div','mascot-name','カ・エルデ'));
+  const mbubble=el('div','mascot-bubble');
+  mbubble.append(el('div','mascot-label','ピョコピョコからひとこと💬'),el('div','mascot-msg',mascotMsg));
+  mas.append(micon,mbubble); app.append(mas);
+
+  // View
+  if(view==='calendar') app.append(renderCalendar());
+  else if(view==='analytics') app.append(renderAnalytics());
+  else if(view==='accounts') app.append(renderAccounts());
+
+  // Nav
+  const nav=el('div','nav');
+  [['calendar','カレンダー','📅'],['analytics','分析','📊'],['accounts','アカウント','👤']].forEach(([v,label,icon])=>{
+    const btn=el('button','nav-btn');
+    btn.style.color=view===v?'#6C63FF':'#94A3B8';
+    btn.style.fontWeight=view===v?700:400;
+    btn.append(el('span','nav-icon',icon),document.createTextNode(label));
+    btn.onclick=()=>setState({view:v,selectedDay:null});
+    nav.append(btn);
+  });
+  app.append(nav);
+
+  // Modal
+  if(state.showModal) app.append(renderModal());
+}
+
+render();
+</script>
 </body>
 </html>
